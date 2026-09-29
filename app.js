@@ -9,6 +9,10 @@ const languageSelect = document.querySelector('#language');
 const themeSelect = document.querySelector('#theme');
 const watchButton = document.querySelector('#watch-toggle');
 const avoidViewedInput = document.querySelector('#avoid-viewed');
+const catalogSearchForm = document.querySelector('#catalog-search-form');
+const catalogSearchInput = document.querySelector('#catalog-search');
+const catalogResults = document.querySelector('#catalog-results');
+const relatedResults = document.querySelector('#related-results');
 const spinIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg>';
 const STORAGE_KEY = 'cinema-roulette-v3';
 const PREVIOUS_STORAGE_KEY = 'cinema-roulette-v2';
@@ -18,6 +22,10 @@ let spinning = false;
 let winningIndex = -1;
 let showAllHistory = false;
 let lastResultMovieId = null;
+let selectedCollection = 'all';
+let remoteSearchResults = null;
+let catalogRequestController = null;
+let catalogStatusOverride = '';
 
 const COPY = {
   'pt-PT': {
@@ -30,6 +38,13 @@ const COPY = {
     collectionEyebrow: 'A TUA SESSÃO DE CINEMA', collectionTitle: 'Filmes na roleta', collectionSummary: 'possibilidades para esta noite. A tua coleção, pronta a entrar em cena.', editMovies: 'Editar filmes', editorHelp: 'Um filme por linha. Troca, acrescenta ou elimina títulos.', moviesLabel: 'Filmes a incluir na roleta, um por linha', reset: 'Repor a seleção inicial', finishEdit: 'Concluir edição',
     eligibleMovies: count => `${count} ${count === 1 ? 'filme elegível' : 'filmes elegíveis'}`, avoidViewed: 'Evitar filmes já vistos', exhausted: 'Todos os filmes da lista estão marcados como vistos. Podes incluir os vistos ou reiniciar a lista de vistos deste tema.', includeViewed: 'Incluir filmes vistos', resetViewed: 'Reiniciar lista de vistos',
     markViewed: 'Marcar como visto', undoViewed: 'Desmarcar como visto', viewed: 'Visto',
+    discoverTitle: 'Descobrir filmes', discoverIntro: 'Sugestões temáticas curadas. Não são recomendações personalizadas por IA.', searchLabel: 'Pesquisar filmes por título', searchPlaceholder: 'Título do filme', searchButton: 'Pesquisar',
+    collectionLabel: 'Coleções temáticas', collectionAll: 'Todas as sugestões', collectionHalloweenFamily: 'Halloween em família', collectionHorror: 'Terror a sério', collectionChristmasClassics: 'Clássicos de Natal', collectionChristmasFamily: 'Natal em família',
+    localCatalogStatus: 'Catálogo local curado. A pesquisa online TMDB não está ativa.', noCatalogResults: 'Não foram encontradas sugestões nesta coleção.', searchWorking: 'A pesquisar no catálogo TMDB…', tmdbSearchResults: count => `${count} resultados de pesquisa TMDB.`, tmdbNoResults: 'A pesquisa TMDB não encontrou filmes.', tmdbSearchError: 'Não foi possível contactar o catálogo TMDB. A mostrar as sugestões locais.',
+    addMovie: title => `Adicionar ${title} à roleta`, alreadyAdded: 'Já adicionado', addToWheel: 'Adicionar à roleta', alreadyOnWheel: 'Já está na roleta', curatedLabel: 'Sugestão curada', tmdbLabel: 'Dados TMDB', posterUnavailable: 'Cartaz indisponível', posterAlt: title => `Cartaz de ${title}`,
+    durationValue: minutes => `${minutes} min`, durationUnknown: 'Duração desconhecida', tmdbRating: rating => `TMDB ${rating.toFixed(1)}`, imdbLink: 'IMDb', noGenres: 'Géneros indisponíveis',
+    relatedTitle: 'Sugestões relacionadas do TMDB', relatedNoIds: 'A tua playlist ainda não tem IDs TMDB para pedir recomendações relacionadas.', relatedOffline: 'As recomendações relacionadas ficam disponíveis quando o serviço TMDB estiver configurado.', relatedLoading: 'A carregar sugestões relacionadas…', relatedEmpty: 'O TMDB não devolveu sugestões relacionadas.', relatedError: 'Não foi possível carregar sugestões relacionadas.',
+    tmdbNotice: 'Este produto utiliza a API TMDB, mas não é aprovado nem certificado pelo TMDB.', tmdbLogoAlt: 'The Movie Database (TMDB)',
     historyEyebrow: 'AS SESSÕES PASSADAS', clearHistory: 'Limpar histórico', historyNote: 'Os sorteios ficam guardados apenas neste navegador.',
     historyStats: (movies, draws) => `${movies} ${movies === 1 ? 'filme diferente' : 'filmes diferentes'} · ${draws} ${draws === 1 ? 'sorteio' : 'sorteios'}`,
     historyCount: count => `${count} ${count === 1 ? 'vez' : 'vezes'}`, emptyHistory: 'O teu primeiro filme vai entrar para a história.', more: 'Mostrar mais', less: 'Mostrar menos',
@@ -48,6 +63,13 @@ const COPY = {
     collectionEyebrow: 'YOUR MOVIE NIGHT', collectionTitle: 'Movies on the wheel', collectionSummary: 'possibilities for tonight. Your collection is ready for its close-up.', editMovies: 'Edit movies', editorHelp: 'One movie per line. Add, replace or remove titles.', moviesLabel: 'Movies on the wheel, one per line', reset: 'Restore starter selection', finishEdit: 'Done editing',
     eligibleMovies: count => `${count} ${count === 1 ? 'eligible movie' : 'eligible movies'}`, avoidViewed: 'Avoid movies already watched', exhausted: 'Every movie in this collection is marked as watched. Include watched movies or reset this theme’s watched list.', includeViewed: 'Include watched movies', resetViewed: 'Reset watched list',
     markViewed: 'Mark as watched', undoViewed: 'Undo watched status', viewed: 'Watched',
+    discoverTitle: 'Discover movies', discoverIntro: 'Curated theme suggestions. These are not AI-personalized recommendations.', searchLabel: 'Search movies by title', searchPlaceholder: 'Movie title', searchButton: 'Search',
+    collectionLabel: 'Themed collections', collectionAll: 'All suggestions', collectionHalloweenFamily: 'Halloween for families', collectionHorror: 'Proper scares', collectionChristmasClassics: 'Christmas classics', collectionChristmasFamily: 'Christmas for families',
+    localCatalogStatus: 'Curated local catalogue. TMDB online search is not active.', noCatalogResults: 'No suggestions were found in this collection.', searchWorking: 'Searching the TMDB catalogue…', tmdbSearchResults: count => `${count} TMDB search results.`, tmdbNoResults: 'TMDB search found no movies.', tmdbSearchError: 'Could not reach the TMDB catalogue. Showing local suggestions.',
+    addMovie: title => `Add ${title} to the wheel`, alreadyAdded: 'Already added', addToWheel: 'Add to the wheel', alreadyOnWheel: 'Already on the wheel', curatedLabel: 'Curated suggestion', tmdbLabel: 'TMDB data', posterUnavailable: 'Poster unavailable', posterAlt: title => `Poster for ${title}`,
+    durationValue: minutes => `${minutes} min`, durationUnknown: 'Duration unknown', tmdbRating: rating => `TMDB ${rating.toFixed(1)}`, imdbLink: 'IMDb', noGenres: 'Genres unavailable',
+    relatedTitle: 'Related TMDB suggestions', relatedNoIds: 'Your playlist has no TMDB IDs yet, so related recommendations are unavailable.', relatedOffline: 'Related recommendations will be available when the TMDB service is configured.', relatedLoading: 'Loading related suggestions…', relatedEmpty: 'TMDB returned no related suggestions.', relatedError: 'Related suggestions could not be loaded.',
+    tmdbNotice: 'This product uses the TMDB API but is not endorsed or certified by TMDB.', tmdbLogoAlt: 'The Movie Database (TMDB)',
     historyEyebrow: 'PAST MOVIE NIGHTS', clearHistory: 'Clear history', historyNote: 'Draws are stored only in this browser.',
     historyStats: (movies, draws) => `${movies} unique ${movies === 1 ? 'movie' : 'movies'} · ${draws} ${draws === 1 ? 'draw' : 'draws'}`,
     historyCount: count => `${count} ${count === 1 ? 'time' : 'times'}`, emptyHistory: 'Your first movie is waiting to make history.', more: 'Show more', less: 'Show less',
@@ -76,6 +98,7 @@ function createMovie(title, source = 'manual', extra = {}) {
     genres: Array.isArray(extra.genres) ? extra.genres.filter(value => typeof value === 'string') : [],
     moods: Array.isArray(extra.moods) ? extra.moods.filter(value => typeof value === 'string') : [],
     overview: extra.overview && typeof extra.overview === 'object' ? extra.overview : null,
+    translatedTitle: typeof extra.translatedTitle === 'string' ? extra.translatedTitle : null,
     posterUrl: typeof extra.posterUrl === 'string' ? extra.posterUrl : null,
     tmdbRating: Number.isFinite(extra.tmdbRating) ? extra.tmdbRating : null,
     tmdbId: Number.isSafeInteger(extra.tmdbId) ? extra.tmdbId : null,
@@ -236,9 +259,27 @@ function renderLanguage() {
   document.querySelector('#exhausted-message').textContent = translate('exhausted');
   document.querySelector('#include-viewed').textContent = translate('includeViewed');
   document.querySelector('#reset-viewed').textContent = translate('resetViewed');
+  document.querySelector('#discover-intro').textContent = translate('discoverIntro');
+  catalogSearchInput.setAttribute('aria-label', translate('searchLabel'));
+  catalogSearchInput.placeholder = translate('searchPlaceholder');
+  document.querySelector('#catalog-search-button').textContent = translate('searchButton');
+  document.querySelector('#catalog-collections').setAttribute('aria-label', translate('collectionLabel'));
+  const collectionLabels = { all: 'collectionAll', 'halloween-family': 'collectionHalloweenFamily', horror: 'collectionHorror', 'christmas-classics': 'collectionChristmasClassics', 'christmas-family': 'collectionChristmasFamily' };
+  document.querySelectorAll('[data-collection]').forEach(button => {
+    const collection = button.getAttribute('data-collection');
+    if (collectionLabels[collection]) button.textContent = translate(collectionLabels[collection]);
+    const isForTheme = collection === 'all' || (activeTheme === 'halloween' ? ['halloween-family', 'horror'].includes(collection) : ['christmas-classics', 'christmas-family'].includes(collection));
+    button.hidden = !isForTheme;
+    button.classList.toggle('is-selected', collection === selectedCollection);
+    button.setAttribute('aria-pressed', String(collection === selectedCollection));
+  });
+  document.querySelector('#related-title').textContent = translate('relatedTitle');
+  document.querySelector('#tmdb-notice').textContent = translate('tmdbNotice');
+  document.querySelector('#tmdb-logo').alt = translate('tmdbLogoAlt');
   renderHistory();
   syncWatchButton();
   renderEligibility(false);
+  renderCatalog();
   if (!spinning && winningIndex < 0) {
     document.querySelector('#result-label').textContent = translate('resultIdleLabel');
     document.querySelector('#result-title').textContent = translate('resultIdleTitle');
@@ -323,6 +364,207 @@ function renderEligibility(redraw = true) {
   if (redraw) drawWheel(eligible);
   return eligible;
 }
+function displayTitle(movie) { return String(movie.title ?? '').replace(/\s*\(\d{4}\)\s*$/, ''); }
+function matchesCollection(movie) { return selectedCollection === 'all' || (Array.isArray(movie.collections) && movie.collections.includes(selectedCollection)); }
+function matchesSearch(movie, query) {
+  const cleanQuery = normalizeTitle(query);
+  if (!cleanQuery) return true;
+  const year = cleanQuery.match(/\b(18\d{2}|19\d{2}|20\d{2})\b/)?.[1];
+  const titleQuery = cleanQuery.replace(/\b(18\d{2}|19\d{2}|20\d{2})\b/g, '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+  const titleMatches = normalizeTitle(movie.title).includes(titleQuery || cleanQuery) || normalizeTitle(movie.translatedTitle ?? '').includes(titleQuery || cleanQuery);
+  return year ? movie.year === Number(year) && (!titleQuery || titleMatches) : titleMatches || String(movie.year ?? '').includes(cleanQuery);
+}
+function localCatalogMatches() {
+  return (CURATED_CATALOG[activeTheme] ?? []).filter(movie => matchesCollection(movie) && matchesSearch(movie, catalogSearchInput.value));
+}
+function safePosterUrl(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === 'image.tmdb.org' ? url.href : null;
+  } catch { return null; }
+}
+function genreLabel(genre) {
+  const translated = {
+    'pt-PT': { Action: 'Ação', Adventure: 'Aventura', Animation: 'Animação', Comedy: 'Comédia', Drama: 'Drama', Family: 'Familiar', Fantasy: 'Fantasia', Horror: 'Terror', Musical: 'Musical', Mystery: 'Mistério', Romance: 'Romance', Thriller: 'Suspense' },
+    en: {}
+  };
+  return translated[language][genre] ?? genre;
+}
+function movieIsAdded(movie) {
+  return playlistRecords().some(existing => (movie.tmdbId && existing.tmdbId === movie.tmdbId) || existing.id === movie.id || normalizeTitle(existing.title) === normalizeTitle(movie.title));
+}
+function createCatalogCard(movie) {
+  const card = document.createElement('article'); card.className = 'movie-card';
+  const poster = document.createElement('div'); poster.className = 'movie-poster';
+  const fallback = document.createElement('div'); fallback.className = 'poster-fallback'; fallback.setAttribute('role', 'img'); fallback.setAttribute('aria-label', translate('posterUnavailable'));
+  const posterWords = document.createElement('span'); posterWords.textContent = translate('posterUnavailable');
+  const posterTitle = document.createElement('strong'); posterTitle.textContent = displayTitle(movie);
+  fallback.append(posterWords, posterTitle); poster.append(fallback);
+  const posterUrl = safePosterUrl(movie.posterUrl);
+  if (posterUrl) {
+    const image = document.createElement('img'); image.src = posterUrl; image.alt = translate('posterAlt', displayTitle(movie)); image.loading = 'lazy';
+    image.addEventListener('load', () => { fallback.hidden = true; });
+    image.addEventListener('error', () => { image.hidden = true; fallback.hidden = false; });
+    poster.append(image);
+  }
+  const body = document.createElement('div'); body.className = 'movie-card-content';
+  const heading = document.createElement('h3'); heading.textContent = displayTitle(movie);
+  const meta = document.createElement('p'); meta.className = 'movie-card-meta';
+  const year = Number.isSafeInteger(movie.year) ? movie.year : (String(movie.title).match(/\((\d{4})\)\s*$/)?.[1] ?? null);
+  const duration = Number.isSafeInteger(movie.runtimeMinutes) && movie.runtimeMinutes > 0 ? translate('durationValue', movie.runtimeMinutes) : translate('durationUnknown');
+  meta.textContent = [year, duration].filter(Boolean).join(' · ');
+  body.append(heading, meta);
+  if (movie.translatedTitle && normalizeTitle(movie.translatedTitle) !== normalizeTitle(displayTitle(movie))) {
+    const altTitle = document.createElement('p'); altTitle.className = 'movie-card-alt-title'; altTitle.textContent = movie.translatedTitle; body.append(altTitle);
+  }
+  const overviewText = movie.overview?.[language] || movie.overview?.['pt-PT'] || movie.overview?.en || '';
+  if (overviewText) { const overview = document.createElement('p'); overview.className = 'movie-card-overview'; overview.textContent = overviewText; body.append(overview); }
+  if (movie.genres?.length) {
+    const genres = document.createElement('ul'); genres.className = 'movie-genres'; genres.setAttribute('aria-label', language === 'pt-PT' ? 'Géneros' : 'Genres');
+    for (const genre of movie.genres) { const item = document.createElement('li'); item.textContent = genreLabel(genre); genres.append(item); }
+    body.append(genres);
+  } else {
+    const noGenres = document.createElement('p'); noGenres.className = 'movie-card-note'; noGenres.textContent = translate('noGenres'); body.append(noGenres);
+  }
+  const tags = document.createElement('div'); tags.className = 'movie-card-tags';
+  const source = document.createElement('span'); source.className = `catalog-source source-${movie.source === 'tmdb' ? 'tmdb' : 'curated'}`; source.textContent = translate(movie.source === 'tmdb' ? 'tmdbLabel' : 'curatedLabel'); tags.append(source);
+  if (Number.isFinite(movie.tmdbRating)) { const rating = document.createElement('span'); rating.className = 'tmdb-rating'; rating.textContent = translate('tmdbRating', movie.tmdbRating); tags.append(rating); }
+  body.append(tags);
+  const actions = document.createElement('div'); actions.className = 'movie-card-actions';
+  const added = movieIsAdded(movie);
+  const add = document.createElement('button'); add.type = 'button'; add.className = 'text-button add-movie'; add.disabled = added;
+  add.textContent = translate(added ? 'alreadyOnWheel' : 'addToWheel');
+  add.setAttribute('aria-label', translate(added ? 'alreadyOnWheel' : 'addMovie', displayTitle(movie)));
+  add.addEventListener('click', () => addCatalogMovie(movie)); actions.append(add);
+  if (typeof movie.imdbId === 'string' && /^tt\d{7,}$/.test(movie.imdbId)) {
+    const imdb = document.createElement('a'); imdb.className = 'imdb-link'; imdb.href = `https://www.imdb.com/title/${encodeURIComponent(movie.imdbId)}/`; imdb.target = '_blank'; imdb.rel = 'noreferrer'; imdb.textContent = translate('imdbLink'); imdb.setAttribute('aria-label', `${translate('imdbLink')}: ${displayTitle(movie)}`); actions.append(imdb);
+  }
+  body.append(actions); card.append(poster, body); return card;
+}
+function renderCatalog() {
+  if (typeof CURATED_CATALOG === 'undefined') return;
+  const results = remoteSearchResults ?? localCatalogMatches();
+  catalogResults.replaceChildren();
+  for (const movie of results) catalogResults.append(createCatalogCard(movie));
+  const status = catalogStatusOverride || translate('localCatalogStatus');
+  document.querySelector('#catalog-status').textContent = status;
+  if (!results.length) {
+    const empty = document.createElement('p'); empty.className = 'catalog-empty';
+    empty.textContent = remoteSearchResults ? translate('tmdbNoResults') : translate('noCatalogResults');
+    catalogResults.append(empty);
+  }
+  const attribution = document.querySelector('#tmdb-attribution');
+  const logo = document.querySelector('#tmdb-logo');
+  const config = tmdbConfig();
+  attribution.hidden = !config;
+  if (config) { logo.src = config.logo.href; logo.hidden = false; }
+  else { logo.removeAttribute('src'); logo.hidden = true; }
+}
+function windowHasTmdbConfig() {
+  try {
+    if (typeof window !== 'object') return false;
+    const base = new URL(window.CINEMA_CATALOG_PROXY_URL);
+    const logo = new URL(window.CINEMA_TMDB_LOGO_URL, location.href);
+    return base.protocol === 'https:' && !base.username && !base.password && logo.protocol === 'https:';
+  } catch { return false; }
+}
+function tmdbConfig() {
+  if (!windowHasTmdbConfig()) return null;
+  return { base: new URL(window.CINEMA_CATALOG_PROXY_URL), logo: new URL(window.CINEMA_TMDB_LOGO_URL, location.href) };
+}
+async function tmdbRequest(path, params = {}, signal) {
+  const config = tmdbConfig();
+  if (!config) throw new Error('TMDB proxy is not configured');
+  const basePath = `${config.base.href.replace(/\/+$/, '')}/`;
+  const url = new URL(String(path).replace(/^\/+/, ''), basePath);
+  for (const [key, value] of Object.entries(params)) if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
+  const response = await fetch(url, { method: 'GET', credentials: 'omit', headers: { Accept: 'application/json' }, signal });
+  if (!response.ok) throw new Error(`TMDB proxy returned ${response.status}`);
+  return response.json();
+}
+function imageUrlFromPath(path) { return typeof path === 'string' && path.startsWith('/') ? `https://image.tmdb.org/t/p/w342${path}` : null; }
+function normalizeTmdbMovie(searchMovie, details) {
+  const source = details ?? searchMovie;
+  const originalTitle = source.original_title || searchMovie.original_title || source.title || searchMovie.title || '';
+  if (!originalTitle) return null;
+  const translatedTitle = (source.title || searchMovie.title || '').trim();
+  const rawYear = String(source.release_date || searchMovie.release_date || '').slice(0, 4);
+  const year = /^\d{4}$/.test(rawYear) ? Number(rawYear) : null;
+  const title = year && !/\(\d{4}\)\s*$/.test(originalTitle) ? `${originalTitle} (${year})` : originalTitle;
+  const externalId = source.external_ids?.imdb_id;
+  return createMovie(title, 'tmdb', {
+    id: `tmdb:${source.id ?? searchMovie.id}`, tmdbId: Number(source.id ?? searchMovie.id),
+    year, runtimeMinutes: Number.isSafeInteger(source.runtime) && source.runtime > 0 ? source.runtime : null,
+    genres: Array.isArray(source.genres) ? source.genres.map(genre => genre.name).filter(Boolean) : [],
+    overview: { [language]: source.overview || searchMovie.overview || '' },
+    translatedTitle: translatedTitle && normalizeTitle(translatedTitle) !== normalizeTitle(originalTitle) ? translatedTitle : null,
+    posterUrl: imageUrlFromPath(source.poster_path || searchMovie.poster_path),
+    tmdbRating: Number.isFinite(source.vote_average) ? source.vote_average : Number.isFinite(searchMovie.vote_average) ? searchMovie.vote_average : null,
+    imdbId: typeof externalId === 'string' && /^tt\d{7,}$/.test(externalId) ? externalId : null
+  });
+}
+async function searchOnline(query) {
+  if (!tmdbConfig() || !query.trim()) { remoteSearchResults = null; catalogStatusOverride = ''; renderCatalog(); return; }
+  catalogRequestController?.abort();
+  catalogRequestController = new AbortController();
+  const { signal } = catalogRequestController;
+  const titleQuery = query.replace(/\b(18\d{2}|19\d{2}|20\d{2})\b/g, '').trim() || query;
+  const releaseYear = query.match(/\b(18\d{2}|19\d{2}|20\d{2})\b/)?.[1];
+  remoteSearchResults = [];
+  catalogStatusOverride = translate('searchWorking'); renderCatalog();
+  try {
+    const response = await tmdbRequest('search/movie', { query: titleQuery, language: language === 'pt-PT' ? 'pt-PT' : 'en-US', include_adult: false, primary_release_year: releaseYear, page: 1 }, signal);
+    const raw = Array.isArray(response.results) ? response.results.slice(0, 10) : [];
+    const enriched = await Promise.all(raw.map(async movie => {
+      if (!Number.isSafeInteger(movie.id)) return normalizeTmdbMovie(movie, null);
+      try {
+        const details = await tmdbRequest(`movie/${movie.id}`, { language: language === 'pt-PT' ? 'pt-PT' : 'en-US', append_to_response: 'external_ids' }, signal);
+        return normalizeTmdbMovie(movie, details);
+      } catch { return normalizeTmdbMovie(movie, null); }
+    }));
+    remoteSearchResults = enriched.filter(Boolean);
+    catalogStatusOverride = translate('tmdbSearchResults', remoteSearchResults.length);
+    const logo = document.querySelector('#tmdb-logo'); logo.src = tmdbConfig().logo.href; logo.hidden = false;
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    remoteSearchResults = null;
+    catalogStatusOverride = translate('tmdbSearchError');
+  }
+  renderCatalog();
+}
+function addCatalogMovie(movie) {
+  if (movieIsAdded(movie)) return;
+  const added = createMovie(movie.title, movie.source, movie);
+  themeData.playlist = [...playlistRecords(), added];
+  input.value = themeData.playlist.map(item => item.title).join('\n');
+  updateList();
+  catalogStatusOverride = language === 'pt-PT' ? `${displayTitle(movie)} foi adicionado à roleta.` : `${displayTitle(movie)} was added to the wheel.`;
+  renderCatalog();
+}
+async function loadRelatedRecommendations() {
+  const section = document.querySelector('#related-section');
+  section.hidden = false; relatedResults.replaceChildren();
+  const tmdbIds = [...new Set(playlistRecords().map(movie => movie.tmdbId).filter(Number.isSafeInteger))].slice(0, 3);
+  if (!tmdbIds.length) { document.querySelector('#related-status').textContent = translate('relatedNoIds'); return; }
+  if (!tmdbConfig()) { document.querySelector('#related-status').textContent = translate('relatedOffline'); return; }
+  document.querySelector('#related-status').textContent = translate('relatedLoading');
+  try {
+    const responses = await Promise.all(tmdbIds.map(id => tmdbRequest(`movie/${id}/recommendations`, { language: language === 'pt-PT' ? 'pt-PT' : 'en-US', page: 1 })));
+    const seen = new Set(); const recommendations = [];
+    for (const response of responses) for (const item of response.results ?? []) {
+      if (!Number.isSafeInteger(item.id) || seen.has(item.id)) continue;
+      seen.add(item.id);
+      const candidate = normalizeTmdbMovie(item, null);
+      if (candidate && !movieIsAdded(candidate)) recommendations.push(candidate);
+    }
+    for (const movie of recommendations.slice(0, 8)) relatedResults.append(createCatalogCard(movie));
+    document.querySelector('#related-status').textContent = recommendations.length ? '' : translate('relatedEmpty');
+    const logo = document.querySelector('#tmdb-logo'); logo.src = tmdbConfig().logo.href; logo.hidden = false;
+  } catch {
+    document.querySelector('#related-status').textContent = translate('relatedError');
+  }
+}
 function setWatched(movieId, isWatched) {
   if (!movieId) return;
   viewed = isWatched ? [...new Set([...viewed, movieId])] : viewed.filter(id => id !== movieId);
@@ -334,6 +576,14 @@ watchButton.addEventListener('click', () => setWatched(lastResultMovieId, !viewe
 avoidViewedInput.addEventListener('change', () => { avoidViewed = avoidViewedInput.checked; persistState(); renderEligibility(); });
 document.querySelector('#include-viewed').addEventListener('click', () => { avoidViewed = false; avoidViewedInput.checked = false; persistState(); renderEligibility(); });
 document.querySelector('#reset-viewed').addEventListener('click', () => { viewed = []; persistState(); renderEligibility(); syncWatchButton(); });
+catalogSearchInput.addEventListener('input', () => { catalogRequestController?.abort(); remoteSearchResults = null; catalogStatusOverride = ''; renderCatalog(); });
+catalogSearchForm.addEventListener('submit', event => { event.preventDefault(); return searchOnline(catalogSearchInput.value); });
+document.querySelectorAll('[data-collection]').forEach(button => button.addEventListener('click', () => {
+  selectedCollection = button.getAttribute('data-collection') || 'all';
+  remoteSearchResults = null; catalogStatusOverride = '';
+  renderLanguage();
+}));
+document.querySelector('#discover-panel').addEventListener('toggle', event => { if (event.target.open) loadRelatedRecommendations(); });
 function randomIndex(length) {
   const range = 4294967296;
   const limit = range - (range % length);
@@ -469,6 +719,11 @@ themeSelect.addEventListener('change', () => {
   viewed = themeData.viewed;
   avoidViewed = themeData.avoidViewed;
   input.value = themeData.playlist.map(movie => movie.title).join('\n');
+  selectedCollection = 'all';
+  catalogSearchInput.value = '';
+  catalogRequestController?.abort();
+  remoteSearchResults = null;
+  catalogStatusOverride = '';
   lastResultMovieId = null;
   winningIndex = -1;
   showAllHistory = false;

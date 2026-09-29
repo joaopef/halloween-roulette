@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "halloween-cinema-catalog",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-29",
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [
+      { "name": "RATE_LIMITER", "class_name": "CinemaRateLimiter" }
+    ]
+  },
+  "exports": {
+    "CinemaRateLimiter": { "type": "durable-object", "storage": "sqlite" }
+  }
+}

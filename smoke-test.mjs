@@ -2,32 +2,39 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
+import tmdbProxy, { CinemaRateLimiter } from './tmdb-proxy/worker.mjs';
 
 const i18nKeys = ['eyebrow', 'headline1', 'headline2', 'intro', 'wheelCaption', 'spin', 'collectionEyebrow', 'collectionTitle', 'collectionSummary', 'editMovies', 'editorHelp', 'moviesLabel', 'reset', 'finishEdit', 'historyEyebrow', 'clearHistory', 'historyNote', 'footerLeft', 'footerRight'];
 
-async function createApp(seed = {}) {
+async function createApp(seed = {}, options = {}) {
   const nodes = new Map();
+  function makeElement(selector) {
+    const classes = new Set();
+    const element = { selector, value: '', textContent: '', innerHTML: '', disabled: false, checked: true, hidden: false, children: [], attributes: {}, listeners: {}, style: {}, dataset: {}, options: selector === '#theme' ? [{ textContent: '' }, { textContent: '' }] : [], classList: { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, toggle(name, force) { if (force ?? !classes.has(name)) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) }, addEventListener(type, fn) { this.listeners[type] = fn; }, dispatch(type) { return this.listeners[type]?.({ target: this, preventDefault() {} }); }, setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name] ?? null; }, removeAttribute(name) { delete this.attributes[name]; }, replaceChildren() { this.children = []; }, append(...items) { this.children.push(...items); } };
+    element.firstElementChild = { style: {} };
+    return element;
+  }
   function node(selector) {
-    if (!nodes.has(selector)) {
-      const classes = new Set();
-      const n = { selector, value: '', textContent: '', innerHTML: '', disabled: false, checked: true, hidden: false, children: [], attributes: {}, listeners: {}, style: {}, dataset: {}, options: selector === '#theme' ? [{ textContent: '' }, { textContent: '' }] : [], classList: { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, toggle(name, force) { if (force ?? !classes.has(name)) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) }, addEventListener(type, fn) { this.listeners[type] = fn; }, dispatch(type) { return this.listeners[type]?.({ target: this }); }, setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name] ?? null; }, replaceChildren() { this.children = []; }, append(...items) { this.children.push(...items); } };
-      n.firstElementChild = { style: {} };
-      nodes.set(selector, n);
-    }
+    if (!nodes.has(selector)) nodes.set(selector, makeElement(selector));
     return nodes.get(selector);
   }
   const canvasContext = { createRadialGradient() { return { addColorStop() {} }; }, clearRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {}, moveTo() {}, arc() {}, closePath() {}, fill() {}, stroke() {}, fillText() {}, measureText: text => ({ width: text.length * 14 }) };
   node('#wheel').getContext = () => canvasContext;
   const storage = new Map(Object.entries(seed).map(([key, value]) => [key, JSON.stringify(value)]));
+  const requests = [];
+  const fetchImplementation = options.fetch ?? (async () => { throw new TypeError('offline'); });
+  const fetchMock = async (url, requestOptions) => { requests.push({ url: String(url), requestOptions }); return fetchImplementation(url, requestOptions); };
+  const windowObject = options.window ?? {};
   const audios = [];
   const animationFrames = [];
   let now = 0;
   let reduceMotion = false;
   let confirmDecision = false;
-  const sandbox = vm.createContext({ document: { querySelector: node, querySelectorAll: selector => selector === '[data-i18n]' ? i18nKeys.map(key => { const element = node(`i18n:${key}`); element.setAttribute('data-i18n', key); return element; }) : [], documentElement: {}, body: node('body'), createElement: () => ({ textContent: '', append() {}, children: [] }), fonts: null }, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, Audio: class { constructor(src) { this.src = src; this.paused = true; this.playCount = 0; audios.push(this); } play() { this.paused = false; this.playCount++; return Promise.resolve(); } pause() { this.paused = true; } }, crypto: webcrypto, matchMedia: () => ({ matches: reduceMotion }), performance: { now: () => now }, requestAnimationFrame: fn => animationFrames.push(fn), confirm: () => confirmDecision });
+  const sandbox = vm.createContext({ document: { querySelector: node, querySelectorAll: selector => selector === '[data-i18n]' ? i18nKeys.map(key => { const element = node(`i18n:${key}`); element.setAttribute('data-i18n', key); return element; }) : selector === '[data-collection]' ? ['all', 'halloween-family', 'horror', 'christmas-classics', 'christmas-family'].map(key => { const element = node(`collection:${key}`); element.setAttribute('data-collection', key); return element; }) : [], documentElement: {}, body: node('body'), createElement: tag => makeElement(tag), fonts: null }, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, Audio: class { constructor(src) { this.src = src; this.paused = true; this.playCount = 0; audios.push(this); } play() { this.paused = false; this.playCount++; return Promise.resolve(); } pause() { this.paused = true; } }, crypto: webcrypto, matchMedia: () => ({ matches: reduceMotion }), performance: { now: () => now }, requestAnimationFrame: fn => animationFrames.push(fn), confirm: () => confirmDecision, URL, AbortController, location: { href: 'https://joaopef.github.io/halloween-roulette/' }, window: windowObject, fetch: fetchMock });
   vm.runInContext(await readFile('movies.js', 'utf8'), sandbox);
+  vm.runInContext(await readFile('catalog.js', 'utf8'), sandbox);
   vm.runInContext(await readFile('app.js', 'utf8'), sandbox);
-  return { node, storage, audios, animationFrames, sandbox, setNow: value => { now = value; }, setReduceMotion: value => { reduceMotion = value; }, setConfirm: value => { confirmDecision = value; } };
+  return { node, storage, audios, animationFrames, sandbox, requests, setNow: value => { now = value; }, setReduceMotion: value => { reduceMotion = value; }, setConfirm: value => { confirmDecision = value; } };
 }
 
 const app = await createApp();
@@ -40,6 +47,9 @@ assert.equal(node('#edit-toggle').getAttribute('aria-expanded'), 'false');
 assert.equal(node('#sound').getAttribute('aria-pressed'), 'true');
 assert.equal(node('#sound').getAttribute('aria-label'), 'Desativar som');
 assert.equal(node('#theme').value, 'halloween');
+assert.equal(node('#catalog-results').children.length, 27, 'offline Halloween catalogue renders curated cards');
+assert.match(node('#catalog-status').textContent, /TMDB não está ativa/);
+assert.equal(node('#tmdb-attribution').hidden, true, 'inactive TMDB does not claim an active integration');
 assert.equal(node('#history-stats').textContent, '17 filmes diferentes · 24 sorteios');
 assert.equal(node('#history').children.length, 5);
 assert.equal(audios.every(audio => audio.playCount === 0), true, 'page load must not autoplay');
@@ -146,6 +156,25 @@ assert.equal(node('#history-stats').textContent, '0 filmes diferentes · 0 sorte
 assert.equal(node('body').dataset.theme, 'christmas');
 assert.equal(node('#brand-name').innerHTML, 'CHRISTMAS <b>ROULETTE</b>');
 assert.equal(node('#movies').value.includes('Klaus (2019)'), true);
+assert.equal(node('#catalog-results').children.length, 22, 'offline Christmas catalogue renders curated cards');
+node('#catalog-search').value = 'Home Alone'; node('#catalog-search').dispatch('input');
+assert.equal(node('#catalog-results').children.length, 2, 'offline title search distinguishes the two Home Alone films');
+node('#catalog-search').value = 'Home Alone 1990'; node('#catalog-search').dispatch('input');
+assert.equal(node('#catalog-results').children.length, 1, 'year in search narrows remake results');
+const homeAloneCard = node('#catalog-results').children[0];
+const homeAloneActions = homeAloneCard.children[1].children.at(-1);
+assert.equal(homeAloneActions.children[0].disabled, true, 'films already in the playlist cannot be added twice');
+node('#catalog-search').value = 'unlisted title'; node('#catalog-search').dispatch('input');
+assert.equal(node('#catalog-results').children[0].textContent, 'Não foram encontradas sugestões nesta coleção.');
+assert.equal(node('#catalog-results').children[0].selector, 'p');
+node('#catalog-search').value = 'The Holiday'; node('#catalog-search').dispatch('input');
+assert.equal(node('#catalog-results').children.length, 1);
+const holiday = evaluate("CURATED_CATALOG.christmas.find(movie => movie.title === 'The Holiday (2006)')");
+evaluate('addCatalogMovie(CURATED_CATALOG.christmas.find(movie => movie.title === \'The Holiday (2006)\'))');
+assert.equal(node('#count').textContent, 14, 'curated catalogue movie can be added to the wheel');
+assert.equal(evaluate('movieIsAdded(CURATED_CATALOG.christmas.find(movie => movie.title === \'The Holiday (2006)\'))'), true, 'newly added suggestion changes to already added state');
+assert.equal(evaluate('playlistRecords().at(-1).source'), 'curated', 'local movie keeps a manual curation source');
+assert.equal(holiday.tmdbRating, null, 'local catalogue does not invent a TMDB rating');
 node('#movies').value = 'Holiday A (2000)\nHoliday B (2001)'; node('#movies').dispatch('input');
 node('#theme').value = 'halloween'; node('#theme').dispatch('change');
 assert.equal(node('#count').textContent, 60);
@@ -198,8 +227,82 @@ assert.ok(longTitles.includes(longTitleResult.movie));
 assert.equal(longTitleApp.node('#result-title').textContent, longTitleResult.movie, 'long selected title remains complete in the result');
 assert.equal(longTitleApp.node('#movies').value, longTitles.join('\n'), 'editor keeps the complete movie titles');
 
+const tmdbConfig = { CINEMA_CATALOG_PROXY_URL: 'https://catalog.example/api/3/', CINEMA_TMDB_LOGO_URL: 'https://assets.example/tmdb-approved.svg' };
+const tmdbCalls = [];
+const onlineCatalog = await createApp({}, { window: tmdbConfig, fetch: async (url, requestOptions) => {
+  const parsed = new URL(url); tmdbCalls.push({ url: parsed.href, requestOptions });
+  if (parsed.pathname.endsWith('/search/movie')) return { ok: true, json: async () => ({ results: [{ id: 123, title: 'Localized Film', original_title: 'Original Film', release_date: '2020-01-02', poster_path: '/poster.jpg', vote_average: 7.2, overview: 'Search overview' }] }) };
+  if (parsed.pathname.endsWith('/movie/123')) return { ok: true, json: async () => ({ id: 123, title: 'Localized Film', original_title: 'Original Film', release_date: '2020-01-02', runtime: 95, genres: [{ name: 'Comedy' }], poster_path: '/poster.jpg', vote_average: 7.6, overview: 'Detailed overview', external_ids: { imdb_id: 'tt1234567' } }) };
+  if (parsed.pathname.endsWith('/movie/123/recommendations')) return { ok: true, json: async () => ({ results: [{ id: 123, title: 'Original Film', original_title: 'Original Film', release_date: '2020-01-02' }, { id: 456, title: 'Related Film', original_title: 'Related Film', release_date: '1980-05-01', vote_average: 6.5, overview: 'A related story.' }] }) };
+  throw new Error(`Unexpected TMDB request: ${parsed.pathname}`);
+} });
+onlineCatalog.node('#catalog-search').value = 'Original Film 2020';
+await onlineCatalog.node('#catalog-search-form').dispatch('submit');
+assert.equal(onlineCatalog.node('#catalog-results').children.length, 1, 'TMDB search shows its returned title');
+assert.equal(onlineCatalog.node('#catalog-status').textContent, '1 resultados de pesquisa TMDB.');
+assert.equal(onlineCatalog.node('#tmdb-attribution').hidden, false, 'configured TMDB data reveals its attribution notice and supplied logo');
+assert.equal(vm.runInContext('remoteSearchResults[0].id', onlineCatalog.sandbox), 'tmdb:123');
+assert.equal(vm.runInContext('remoteSearchResults[0].runtimeMinutes', onlineCatalog.sandbox), 95);
+assert.equal(vm.runInContext('remoteSearchResults[0].imdbId', onlineCatalog.sandbox), 'tt1234567');
+assert.equal(vm.runInContext('remoteSearchResults[0].tmdbRating', onlineCatalog.sandbox), 7.6);
+assert.equal(vm.runInContext('remoteSearchResults[0].posterUrl', onlineCatalog.sandbox), 'https://image.tmdb.org/t/p/w342/poster.jpg');
+assert.equal(tmdbCalls.every(request => !request.url.includes('api_key') && !request.url.includes('token') && !request.requestOptions.headers.Authorization), true, 'the browser never receives a TMDB credential');
+vm.runInContext('addCatalogMovie(remoteSearchResults[0])', onlineCatalog.sandbox);
+assert.equal(onlineCatalog.node('#count').textContent, 20);
+assert.equal(vm.runInContext('playlistRecords().at(-1).tmdbId', onlineCatalog.sandbox), 123);
+await vm.runInContext('loadRelatedRecommendations()', onlineCatalog.sandbox);
+assert.equal(onlineCatalog.node('#related-results').children.length, 1, 'related results omit a film already on the wheel');
+assert.equal(vm.runInContext('relatedResults.children[0].children[1].children[0].textContent', onlineCatalog.sandbox), 'Related Film');
+
+const noResultCatalog = await createApp({}, { window: tmdbConfig, fetch: async () => ({ ok: true, json: async () => ({ results: [] }) }) });
+noResultCatalog.node('#catalog-search').value = 'No such film';
+await noResultCatalog.node('#catalog-search-form').dispatch('submit');
+assert.equal(noResultCatalog.node('#catalog-results').children[0].textContent, 'A pesquisa TMDB não encontrou filmes.');
+const failedCatalog = await createApp({}, { window: tmdbConfig, fetch: async () => { throw new TypeError('network offline'); } });
+failedCatalog.node('#catalog-search').value = 'Beetlejuice';
+await failedCatalog.node('#catalog-search-form').dispatch('submit');
+assert.equal(failedCatalog.node('#catalog-status').textContent, 'Não foi possível contactar o catálogo TMDB. A mostrar as sugestões locais.');
+assert.equal(failedCatalog.node('#catalog-results').children.length, 1, 'network failure falls back to local curation');
+
 const html = await readFile('index.html', 'utf8');
 const css = await readFile('style.css', 'utf8');
 assert.match(html, /Wall of Fame/); assert.match(html, /aria-live="polite"/); assert.match(html, /<svg/);
 assert.match(css, /:focus-visible/); assert.match(css, /prefers-reduced-motion:reduce/); assert.match(css, /min-width:44px/);
+
+const allowedOrigin = 'https://joaopef.github.io';
+const requestToProxy = (path, { origin = allowedOrigin, method = 'GET', headers = {} } = {}) => new Request(`https://catalog.example/3/${path}`, { method, headers: { Origin: origin, ...headers } });
+const unauthenticated = await tmdbProxy.fetch(requestToProxy('search/movie'), {});
+assert.equal(unauthenticated.status, 503, 'missing TMDB credentials disable online mode safely');
+const deniedOrigin = await tmdbProxy.fetch(requestToProxy('search/movie', { origin: 'https://attacker.example' }), { TMDB_API_READ_ACCESS_TOKEN: 'secret' });
+assert.equal(deniedOrigin.status, 403, 'proxy rejects unknown browser origins');
+const preflight = await tmdbProxy.fetch(requestToProxy('search/movie', { method: 'OPTIONS' }), {});
+assert.equal(preflight.status, 204, 'proxy responds to browser preflight without credentials');
+assert.equal(preflight.headers.get('Access-Control-Allow-Origin'), allowedOrigin);
+const proxyNoQuery = await tmdbProxy.fetch(requestToProxy('search/movie'), { TMDB_API_READ_ACCESS_TOKEN: 'secret', RATE_LIMITER: {} });
+assert.equal(proxyNoQuery.status, 400, 'proxy validates required search parameters');
+const proxyDeniedRoute = await tmdbProxy.fetch(requestToProxy('configuration'), { TMDB_API_READ_ACCESS_TOKEN: 'secret', RATE_LIMITER: {} });
+assert.equal(proxyDeniedRoute.status, 404, 'proxy only exposes the documented TMDB routes');
+const passedRateLimiter = { idFromName: name => name, get: name => ({ async fetch() { assert.match(name, /^[a-f0-9]{64}$/); return new Response('OK'); } }) };
+const originalFetch = globalThis.fetch;
+let upstreamRequest;
+try {
+  globalThis.fetch = async (url, init) => { upstreamRequest = { url: new URL(url), init }; return new Response(JSON.stringify({ results: [] }), { headers: { 'Content-Type': 'application/json' } }); };
+  const proxySearch = await tmdbProxy.fetch(requestToProxy('search/movie?query=The%20Thing&language=en-US&primary_release_year=1982', { headers: { 'CF-Connecting-IP': '203.0.113.10' } }), { TMDB_API_READ_ACCESS_TOKEN: 'secret-token-for-server', RATE_LIMITER: passedRateLimiter });
+  assert.equal(proxySearch.status, 200);
+  assert.equal(proxySearch.headers.get('Access-Control-Allow-Origin'), allowedOrigin);
+  assert.equal(upstreamRequest.url.hostname, 'api.themoviedb.org');
+  assert.equal(upstreamRequest.url.searchParams.get('query'), 'The Thing');
+  assert.equal(upstreamRequest.url.searchParams.get('primary_release_year'), '1982');
+  assert.equal(upstreamRequest.url.searchParams.has('api_key'), false);
+  assert.equal(upstreamRequest.init.headers.Authorization, 'Bearer secret-token-for-server', 'server token is sent only from the Worker to TMDB');
+  assert.equal(await proxySearch.text(), '{"results":[]}');
+} finally { globalThis.fetch = originalFetch; }
+
+const rows = new Map();
+const limiterState = { storage: { async transaction(operation) { return operation({ get: async key => rows.get(key), put: async (key, value) => rows.set(key, value) }); } } };
+const rateLimiter = new CinemaRateLimiter(limiterState);
+for (let index = 0; index < 90; index++) assert.equal((await rateLimiter.fetch(new Request('https://rate-limit.internal/check', { method: 'POST' }))).status, 200);
+const limited = await rateLimiter.fetch(new Request('https://rate-limit.internal/check', { method: 'POST' }));
+assert.equal(limited.status, 429, 'atomic limiter rejects the 91st request in a minute');
+assert.ok(Number(limited.headers.get('Retry-After')) > 0);
 console.log('Passed: original 19-film collection, PT/EN language persistence, Halloween/Christmas isolation, idempotent legacy migration, audio before/during/after spin, pointer/result/highlight alignment, compact top-five Wall of Fame, list editing, keyboard focus hooks and reduced motion.');

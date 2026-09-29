@@ -9,6 +9,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <script src="movies.js" defer></script>
+  <script src="catalog.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body data-theme="halloween">
@@ -56,6 +57,28 @@
           <button class="text-button finish-edit" id="finish-edit" type="button" hidden data-i18n="finishEdit">Concluir edição</button>
         </aside>
         <section class="history-panel"><div class="history-heading"><div><span class="eyebrow" data-i18n="historyEyebrow">AS SESSÕES PASSADAS</span><h2>Wall of Fame</h2><p id="history-stats"></p></div><button class="text-button" id="clear-history" type="button" data-i18n="clearHistory">Limpar histórico</button></div><p class="history-note" data-i18n="historyNote">Os sorteios ficam guardados apenas neste navegador.</p><ol id="history"></ol><button class="text-button history-toggle" id="history-toggle" type="button" hidden>Mostrar mais</button></section>
+        <details class="discovery-panel" id="discover-panel">
+          <summary id="discover-summary" data-i18n="discoverTitle">Descobrir filmes</summary>
+          <div class="discover-body">
+            <p class="discover-intro" id="discover-intro"></p>
+            <form class="catalog-search" id="catalog-search-form">
+              <label class="sr-only" for="catalog-search" id="catalog-search-label">Pesquisar por título</label>
+              <input id="catalog-search" type="search" maxlength="100" autocomplete="off" placeholder="Pesquisar por título">
+              <button type="submit" id="catalog-search-button" class="text-button">Pesquisar</button>
+            </form>
+            <div class="collection-filters" id="catalog-collections" role="group" aria-label="Coleções temáticas">
+              <button type="button" data-collection="all" class="is-selected">Todas</button>
+              <button type="button" data-collection="halloween-family">Halloween em família</button>
+              <button type="button" data-collection="horror">Terror a sério</button>
+              <button type="button" data-collection="christmas-classics">Clássicos de Natal</button>
+              <button type="button" data-collection="christmas-family">Natal em família</button>
+            </div>
+            <p class="catalog-status" id="catalog-status" role="status" aria-live="polite"></p>
+            <div class="catalog-grid" id="catalog-results" aria-label="Sugestões de filmes"></div>
+            <section class="related-section" id="related-section" hidden><h3 id="related-title"></h3><p id="related-status"></p><div class="catalog-grid" id="related-results"></div></section>
+            <aside class="tmdb-attribution" id="tmdb-attribution" hidden aria-label="Atribuição TMDB"><a href="https://www.themoviedb.org/about/logos-attribution" target="_blank" rel="noreferrer" class="tmdb-logo-link"><img id="tmdb-logo" alt="The Movie Database (TMDB)" hidden></a><p id="tmdb-notice"></p></aside>
+          </div>
+        </details>
       </div>
     </div>
   </main>

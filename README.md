@@ -20,7 +20,20 @@ A aplicação usa apenas os efeitos de rotação e de fim (`slot.wav` e `ding.mp
 
 ## Catálogo online
 
-O catálogo curado local mantém a roleta utilizável sem serviços externos. A pesquisa online TMDB ainda não está ativa. O TMDB exige uma credencial e atribuição; não guardar uma chave no JavaScript publicado. Para ativar a integração, será necessário configurar um endpoint HTTPS intermédio, com a credencial TMDB apenas no segredo do serviço. A configuração e a atribuição do TMDB serão documentadas quando o endpoint existir.
+O catálogo curado local mantém a roleta utilizável sem serviços externos: 27 sugestões de Halloween e 22 de Natal, com pesquisa por título/ano e coleções temáticas. As sinopses, géneros, durações e disposições desta lista são editoriais; não são dados TMDB. O catálogo local não tem cartazes, classificações TMDB nem IDs IMDb verificados, pelo que mostra uma alternativa ao cartaz e não inventa esses campos.
+
+A aplicação tem um adaptador TMDB opcional. O projeto não tem credencial nem serviço configurado, por isso a pesquisa online e recomendações TMDB **não estão ativas**. O adaptador usa os endpoints TMDB de pesquisa, detalhes e recomendações; os detalhes só mostram um link IMDb quando o endpoint de IDs externos devolve um ID válido. Os cartazes vêm do CDN de imagens TMDB e as notas são sempre identificadas como TMDB.
+
+Para ativar a integração:
+
+1. Regista a aplicação e obtém o token de leitura TMDB. O worker em `tmdb-proxy/worker.mjs` aceita apenas pesquisa/detalhes/recomendações de filmes, filtra conteúdo adulto e não devolve a credencial ao browser.
+2. Publica o worker à parte do GitHub Pages e guarda a credencial como segredo `TMDB_API_READ_ACCESS_TOKEN` no fornecedor; não a coloques no repositório nem no JavaScript da página. O worker usa Durable Objects SQLite para limitar cada IP a 90 pedidos por minuto e não guarda o IP em texto simples.
+3. Obtém um dos logótipos aprovados na página oficial de atribuição TMDB e aloja-o por HTTPS.
+4. Define, antes de `app.js`, `window.CINEMA_CATALOG_PROXY_URL` para a raiz `/3/` do worker e `window.CINEMA_TMDB_LOGO_URL` para o logótipo oficial alojado. Sem estas duas configurações a aplicação permanece no modo local.
+
+A atribuição e a nota de não aprovação TMDB aparecem automaticamente quando o catálogo online está configurado. A conta/projeto TMDB e o worker não foram criados nem publicados nesta entrega porque não existe token TMDB ou conta de serviço fornecida. Confirma os termos aplicáveis à utilização do projeto antes de ativar o serviço.
+
+Referências consultadas: [Getting Started](https://developer.themoviedb.org/docs/getting-started), [FAQ](https://developer.themoviedb.org/docs/faq), [pesquisa de filmes](https://developer.themoviedb.org/reference/search-movie), [detalhes de filme](https://developer.themoviedb.org/reference/movie-details), [recomendações](https://developer.themoviedb.org/reference/movie-recommendations), [regras de imagem](https://developer.themoviedb.org/docs/image-basics), [atribuição e logótipos](https://www.themoviedb.org/about/logos-attribution).
 
 ## Publicar no GitHub Pages
 

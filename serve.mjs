@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
-const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/index.html': ['index.html', 'text/html; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/movies.js': ['movies.js', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/slot.wav': ['slot.wav', 'audio/wav'], '/ding.mp3': ['ding.mp3', 'audio/mpeg'] };
+const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/index.html': ['index.html', 'text/html; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/movies.js': ['movies.js', 'text/javascript; charset=utf-8'], '/catalog.js': ['catalog.js', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/slot.wav': ['slot.wav', 'audio/wav'], '/ding.mp3': ['ding.mp3', 'audio/mpeg'] };
 http.createServer(async (req, res) => {
   files['/halloween-landscape.svg'] = ['halloween-landscape.svg', 'image/svg+xml'];
   const file = files[new URL(req.url, 'http://localhost').pathname];
