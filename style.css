@@ -7,6 +7,44 @@
 .game-controls{display:flex;align-items:center;justify-content:center;gap:10px;width:min(100%,370px);margin:0 auto}.game-controls .spin{flex:1;min-width:0;width:auto}.sound-toggle{display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;min-width:44px;min-height:44px;margin:0;padding:10px;border:1px solid #9a541f;border-radius:9px;background:#1a120c;color:#ffd09a}.sound-toggle:hover{background:#332013}.sound-toggle svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.sound-toggle .speaker{fill:currentColor;stroke:none}.sound-toggle .sound-off{display:none}.sound-toggle.is-muted .sound-waves{display:none}.sound-toggle.is-muted .sound-off{display:block}.result{min-height:86px;transform-origin:top center}.result.reveal{animation:result-reveal .38s ease-out both}@keyframes result-reveal{from{opacity:.65;transform:translateY(5px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}.result.winner h3{overflow-wrap:anywhere}.panel-description strong{color:#f0c090}.edit-toggle,.finish-edit,.history-toggle{margin-top:7px;padding:10px 12px;min-height:40px;border:1px solid #71431f;border-radius:7px}.edit-toggle:hover,.finish-edit:hover,.history-toggle:hover{background:#ff871e14}.finish-edit{display:block;margin-left:auto}#movie-editor[hidden],#finish-edit[hidden],.history-toggle[hidden],.edit-toggle[hidden]{display:none}.list-footer #list-status{color:#e7a570;min-height:1.3em}.panel textarea{margin-top:3px}.history-panel{scroll-margin-top:16px}#history li span{overflow-wrap:anywhere}
 @media(prefers-reduced-motion:reduce){.result.reveal{animation:none}}
 @media(max-width:650px){.game-layout{gap:20px}.play-area .result{max-width:450px;margin:19px auto 0;text-align:left}}
+
+/* Shared theme controls and the year-round Christmas cinema skin. */
+:root{--accent:#ff9a37}
+.theme-scene{display:none}
+body[data-theme="halloween"]{--accent:#ff9a37;--theme-line:#a87537;--theme-text:#f4ead8}
+body[data-theme="christmas"]{--bg:#091711;--muted:#b7c5b8;--line:#264b3d;--orange:#e6c66c;--accent:#e6c66c;--theme-line:#6c8c61;--theme-text:#f0f2dc;background-color:#08140f;background-image:radial-gradient(ellipse at 50% 25%,#31563b55,transparent 60%);color:#f5f1df}
+body[data-theme="halloween"] .halloween-scene,body[data-theme="christmas"] .christmas-scene{display:block}
+.global-controls{display:flex;align-items:center;gap:8px}
+.brand{white-space:nowrap;flex:0 0 auto}.brand #brand-name{display:inline-block;white-space:nowrap}
+.compact-select{height:44px;min-width:48px;padding:0 11px;border-radius:7px;border:1px solid color-mix(in srgb,var(--accent) 43%,transparent);background:#11140ff0;color:var(--theme-text,#f5eadb);font:600 11px 'DM Sans',sans-serif;letter-spacing:.3px}
+.compact-select.theme-select{min-width:130px}
+.compact-select:focus-visible,button:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid #fff1ad;outline-offset:3px}
+.compact-select option{background:#111812;color:#f6f0dc}
+.brand-icon{color:var(--accent)}.brand b{color:var(--accent)}.eyebrow{color:var(--accent)}.count{color:var(--accent)}.wheel-lights{display:none}
+.christmas-scene{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:-1;background:linear-gradient(180deg,#0b251b 0%,#0b1b15 48%,#08130f 100%)}
+.christmas-scene:after{content:'';position:absolute;left:0;right:0;bottom:0;height:34vh;min-height:180px;background:linear-gradient(180deg,transparent 0%,#eaf3dd08 62%,#dce9d21c 63%,#cbd9c51c 100%);clip-path:polygon(0 58%,12% 48%,26% 60%,42% 42%,58% 60%,76% 40%,100% 58%,100% 100%,0 100%)}
+.christmas-glow{position:absolute;top:-230px;left:50%;width:650px;height:480px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,#dbb65b22,transparent 68%)}
+.lights{position:absolute;top:0;left:-3%;width:106%;height:45px;padding-top:9px;text-align:center;font-size:15px;letter-spacing:clamp(8px,3vw,35px);color:#ebd58a;text-shadow:0 0 9px #ecbe5b,0 0 20px #75b973}
+.lights:before{content:'';position:absolute;top:0;left:0;width:100%;border-top:2px solid #b2a66b73;transform:rotate(1deg)}
+.snow{position:absolute;color:#eef5de;font-size:32px;text-shadow:0 0 12px #fff;opacity:.7;animation:snow-drift 10s ease-in-out infinite alternate}
+.snow-one{top:25%;left:11%}.snow-two{top:40%;right:12%;font-size:22px;animation-delay:-3s}.snow-three{top:14%;right:32%;font-size:17px;animation-delay:-5s}
+.evergreen{position:absolute;bottom:4%;font-size:72px;filter:drop-shadow(0 7px 13px #0008);opacity:.48}.evergreen-left{left:1%}.evergreen-right{right:1%;font-size:57px;opacity:.36}
+@keyframes snow-drift{from{transform:translate3d(-7px,-5px,0) rotate(-10deg)}to{transform:translate3d(10px,12px,0) rotate(10deg)}}
+body[data-theme="christmas"] .fog{opacity:.28;background:radial-gradient(ellipse at 18% 70%,#d9e5d52b,transparent 36%),radial-gradient(ellipse at 65% 56%,#c6dcc628,transparent 38%)}
+body[data-theme="christmas"] .wheel-frame{border-color:#c8b66a;background:repeating-conic-gradient(from 0deg,#d5ba69 0deg 1deg,#153428 1deg 6deg);box-shadow:0 0 0 4px #07130e,0 0 0 6px #6b8850,0 0 0 11px #0e1d14,0 0 0 12px #dfca7450,0 12px 65px #000b,0 0 90px #d8be5a1c}
+body[data-theme="christmas"] .wheel-frame:after{border-color:#e8d48b99}body[data-theme="christmas"] .wheel-frame:before{border-color:#d1bd7060}body[data-theme="christmas"] .wheel-frame canvas{box-shadow:0 0 0 3px #091711,0 0 0 4px #dfce8899}
+body[data-theme="christmas"] .wheel-center{background:radial-gradient(circle at 35% 25%,#315943,#0b1d14 75%);border-color:#dfc866;box-shadow:0 0 0 5px #0e2418,0 0 0 6px #efdc7955,0 7px 18px #0009}
+body[data-theme="christmas"] .wheel-center svg{filter:drop-shadow(0 0 8px #f4db9255)}body[data-theme="christmas"] .wheel-center small{color:#e0d494}body[data-theme="christmas"] .pointer{background:linear-gradient(90deg,#958143,#fff1b8 48%,#a48c46)}body[data-theme="christmas"] .wheel-lights{position:absolute;z-index:2;display:block;inset:3px;border-radius:50%;color:#f4d979;text-align:center;padding-top:1px;font-size:11px;letter-spacing:22px;text-shadow:0 0 8px #fff2ac;pointer-events:none}
+body[data-theme="christmas"] .panel,body[data-theme="christmas"] .history-panel{background:linear-gradient(135deg,#192b20f5,#0d1912f5);border-color:#6b80513d}
+body[data-theme="christmas"] .panel .eyebrow,body[data-theme="christmas"] .history-panel .eyebrow{color:#d9c77f}body[data-theme="christmas"] .panel-description strong{color:#eadb9b}
+body[data-theme="christmas"] .edit-toggle,body[data-theme="christmas"] .finish-edit,body[data-theme="christmas"] .history-toggle{border-color:#77875177;color:#e4daa7}
+body[data-theme="christmas"] .text-button{color:#d9d3a9}body[data-theme="christmas"] .spin{background:linear-gradient(180deg,#f0d77c,#c5a94e);color:#142319;box-shadow:inset 0 1px #fff1b880,0 6px 25px #d6c16626}
+body[data-theme="christmas"] .spin:hover:not(:disabled){background:#f5e49f}body[data-theme="christmas"] .sound-toggle{border-color:#8c9563;background:#14271b;color:#eee1a9}
+body[data-theme="christmas"] .result{border-color:#91a26f55;background:#101e16ed}body[data-theme="christmas"] .result-icon,body[data-theme="christmas"] .result.winner h3{color:#ecd778}body[data-theme="christmas"] .result .eyebrow{color:#d4c786}
+body[data-theme="christmas"] #history li{border-color:#84946240;color:#e2e3cb}body[data-theme="christmas"] #history b{color:#f0dc8c;background:#7b86421e}body[data-theme="christmas"] footer{color:#abb89d}
+body[data-theme="christmas"] .compact-select{background:#102018;color:#f0efdd;border-color:#8f986555}
+@media(max-width:650px){header{padding:16px 12px;gap:6px}.global-controls{gap:4px}.compact-select{height:44px;padding:0 7px;min-width:44px}.compact-select.theme-select{min-width:105px}.brand{font-size:11px}.brand-icon{font-size:25px;margin-right:6px}.evergreen{font-size:48px}.evergreen-right{font-size:38px}.lights{top:-1px;font-size:12px}.snow{font-size:22px}}
+@media(prefers-reduced-motion:reduce){.snow{animation:none}.christmas-scene:after{transition:none}}
 #result-title{min-height:64px} .result{min-height:123px}
 .editor-actions{display:flex;justify-content:flex-end;margin-top:10px}
 /* The haunted carnival: a new wheel, compact stage and drifting mist. */

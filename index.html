@@ -1,45 +1,61 @@
 <!doctype html>
 <html lang="pt-PT">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b0d0b">
-  <meta name="description" content="Deixa a sorte escolher o filme de terror desta noite. Uma roleta de Halloween com uma lista de filmes personalizável.">
-  <title>Halloween Roulette — O teu próximo pesadelo</title>
+  <meta name="description" content="Deixa a sorte escolher o filme da noite. Uma roleta de cinema com coleções para Halloween e Natal.">
+  <title>Halloween Roulette — O teu próximo filme</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css"><script src="movies.js" defer></script><script src="app.js" defer></script>
+  <link rel="stylesheet" href="style.css">
+  <script src="movies.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
-<body>
-  <div class="halloween-scene" aria-hidden="true"><div class="blood-moon"></div><div class="bat bat-one">🦇</div><div class="bat bat-two">🦇</div><div class="bat bat-three">🦇</div><div class="pumpkin pumpkin-left">🎃</div><div class="pumpkin pumpkin-right">🎃</div></div>
+<body data-theme="halloween">
+  <div class="halloween-scene theme-scene" aria-hidden="true"><div class="blood-moon"></div><div class="bat bat-one">🦇</div><div class="bat bat-two">🦇</div><div class="bat bat-three">🦇</div><div class="pumpkin pumpkin-left">🎃</div><div class="pumpkin pumpkin-right">🎃</div></div>
+  <div class="christmas-scene theme-scene" aria-hidden="true"><div class="christmas-glow"></div><div class="lights lights-top">✦　●　✦　●　✦　●　✦　●　✦</div><div class="snow snow-one">✳</div><div class="snow snow-two">❄</div><div class="snow snow-three">✻</div><div class="evergreen evergreen-left">🌲</div><div class="evergreen evergreen-right">🌲</div></div>
   <div class="fog fog-back" aria-hidden="true"></div><div class="fog fog-front" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>
-  <header><a class="brand" href="./"><span class="brand-icon">✦</span> HALLOWEEN <b>ROULETTE</b></a><span class="edition">NOITES DE TERROR <span>·</span> 31 OUT</span></header>
+  <header>
+    <a class="brand" href="./"><span class="brand-icon" aria-hidden="true">✦</span><span id="brand-name">HALLOWEEN <b>ROULETTE</b></span></a>
+    <div class="global-controls">
+      <label class="sr-only" for="language">Idioma da interface</label>
+      <select id="language" class="compact-select" aria-label="Idioma da interface">
+        <option value="pt-PT">PT</option><option value="en">EN</option>
+      </select>
+      <label class="sr-only" for="theme">Tema da roleta</label>
+      <select id="theme" class="compact-select theme-select" aria-label="Tema da roleta">
+        <option value="halloween">🎃 Halloween</option><option value="christmas">🎄 Christmas</option>
+      </select>
+    </div>
+  </header>
   <main>
-    <section class="intro"><span class="eyebrow"><i></i> UMA SESSÃO ESCOLHIDA PELO DESTINO</span><h1>A noite é tua.<br><em>O filme é da sorte.</em></h1><p>Entre bruxas, fantasmas e pesadelos.<br> Roda e descobre o que te espera.</p></section>
+    <section class="intro"><span class="eyebrow"><i></i><span data-i18n="eyebrow">UMA SESSÃO ESCOLHIDA PELO DESTINO</span></span><h1><span data-i18n="headline1">A noite é tua.</span><br><em data-i18n="headline2">O filme é da sorte.</em></h1><p data-i18n="intro">Entre bruxas, fantasmas e pesadelos. Roda e descobre o que te espera.</p></section>
     <div class="game-layout">
       <section class="play-area" aria-label="Roleta de filmes">
-        <div class="wheel-stage"><span class="wheel-caption">A RODA DOS ARREPIOS</span><div class="wheel-frame"><div class="pointer" aria-hidden="true"></div><canvas id="wheel" width="1000" height="1000" role="img" aria-label="Roleta com os filmes da lista"></canvas><div class="wheel-center" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 13c-8-5-24 1-25 18-2 18 13 26 25 22 12 4 27-4 25-22-1-17-17-23-25-18Z" fill="currentColor"/><path d="m28 13 3-8 8-2-4 11" fill="none" stroke="currentColor" stroke-width="4"/><path d="m15 31 12-6-3 12Zm34 0-12-6 3 12ZM31 32l-4 8h10ZM16 42l8 3 4-3 4 5 5-5 4 3 7-3-5 8H21Z" fill="#160d07"/></svg><small>HALLOWEEN</small></div></div><span class="wheel-orbit" aria-hidden="true">✦ &nbsp; QUE A SORTE TE ASSOMBRE &nbsp; ✦</span></div>
-        <div class="game-controls"><button class="spin" id="spin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg><span>Rodar a roleta</span></button><button class="sound-toggle" id="sound" type="button" aria-pressed="true" aria-label="Desativar som" title="Desativar som"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="speaker" d="M3 9v6h4l5 4V5L7 9H3Z"/><path class="sound-waves" d="M16 9a5 5 0 0 1 0 6m3-9a9 9 0 0 1 0 12"/><path class="sound-off" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
-        <div class="result" id="result" aria-live="polite" aria-atomic="true"><span class="result-icon" aria-hidden="true">☾</span><div><span class="eyebrow" id="result-label">O DESTINO ESTÁ À ESPERA</span><h3 id="result-title">O próximo susto é uma surpresa.</h3><p id="result-description">Roda a roleta para descobrir.</p></div></div>
+        <div class="wheel-stage"><span class="wheel-caption" data-i18n="wheelCaption">A RODA DOS ARREPIOS</span><div class="wheel-frame"><span class="wheel-lights" aria-hidden="true">✦　✦　✦　✦　✦　✦　✦　✦</span><div class="pointer" aria-hidden="true"></div><canvas id="wheel" width="1000" height="1000" role="img" aria-label="Roleta com os filmes da lista"></canvas><div class="wheel-center" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 13c-8-5-24 1-25 18-2 18 13 26 25 22 12 4 27-4 25-22-1-17-17-23-25-18Z" fill="currentColor"/><path d="m28 13 3-8 8-2-4 11" fill="none" stroke="currentColor" stroke-width="4"/><path d="m15 31 12-6-3 12Zm34 0-12-6 3 12ZM31 32l-4 8h10ZM16 42l8 3 4-3 4 5 5-5 4 3 7-3-5 8H21Z" fill="#160d07"/></svg><small id="wheel-theme-label">HALLOWEEN</small></div></div><span class="wheel-orbit" data-i18n="wheelOrbit">✦ &nbsp; QUE A SORTE TE ASSOMBRE &nbsp; ✦</span></div>
+        <div class="game-controls"><button class="spin" id="spin" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg><span data-i18n="spin">Rodar a roleta</span></button><button class="sound-toggle" id="sound" type="button" aria-pressed="true" aria-label="Desativar som" title="Desativar som"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="speaker" d="M3 9v6h4l5 4V5L7 9H3Z"/><path class="sound-waves" d="M16 9a5 5 0 0 1 0 6m3-9a9 9 0 0 1 0 12"/><path class="sound-off" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
+        <div class="result" id="result" aria-live="polite" aria-atomic="true"><span class="result-icon" aria-hidden="true">☾</span><div><span class="eyebrow" id="result-label">O DESTINO ESTÁ À ESPERA</span><h3 id="result-title">O próximo filme é uma surpresa.</h3><p id="result-description">Roda a roleta para descobrir.</p></div></div>
         <p class="hint" id="hint">19 filmes. Uma escolha. Tens coragem?</p>
       </section>
-      <div class="side-panels"><aside class="panel">
-        <div class="panel-heading"><div><span class="eyebrow">A TUA SESSÃO DE CINEMA</span><h2>Filmes na roleta</h2></div><span class="count" id="count">19</span></div>
-        <p class="panel-description"><strong id="movie-summary-count">19</strong> possibilidades para esta noite. A tua coleção de Halloween, pronta a entrar em cena.</p>
-        <button class="text-button edit-toggle" id="edit-toggle" type="button" aria-expanded="false" aria-controls="movie-editor">Editar filmes</button>
-        <div id="movie-editor" hidden>
-        <p class="panel-description">Um filme por linha. Troca, acrescenta ou elimina títulos.</p>
-        <label class="sr-only" for="movies">Filmes a incluir na roleta, um por linha</label>
-        <textarea id="movies" spellcheck="false" rows="12" maxlength="8000"></textarea>
-        <div class="editor-actions"><button class="text-button" id="reset" type="button">Repor a tua seleção</button></div>
-        </div>
-        <div class="list-footer"><span id="list-status" role="status">Lista pronta para rodar</span></div>
-        <button class="text-button finish-edit" id="finish-edit" type="button" hidden>Concluir edição</button>
-      </aside>
-    <section class="history-panel"><div class="history-heading"><div><span class="eyebrow">OS FANTASMAS DAS SESSÕES PASSADAS</span><h2>Wall of Fame</h2><p id="history-stats"></p></div><button class="text-button" id="clear-history" type="button">Limpar histórico</button></div><p class="history-note">Inclui os sorteios do ano passado. Guardado apenas neste navegador.</p><ol id="history"></ol><button class="text-button history-toggle" id="history-toggle" type="button" hidden>Mostrar mais</button></section>
+      <div class="side-panels">
+        <aside class="panel collection-panel">
+          <div class="panel-heading"><div><span class="eyebrow" data-i18n="collectionEyebrow">A TUA SESSÃO DE CINEMA</span><h2 data-i18n="collectionTitle">Filmes na roleta</h2></div><span class="count" id="count">19</span></div>
+          <p class="panel-description"><strong id="movie-summary-count">19</strong> <span data-i18n="collectionSummary">possibilidades para esta noite. A tua coleção, pronta a entrar em cena.</span></p>
+          <button class="text-button edit-toggle" id="edit-toggle" type="button" aria-expanded="false" aria-controls="movie-editor" data-i18n="editMovies">Editar filmes</button>
+          <div id="movie-editor" hidden>
+            <p class="panel-description" data-i18n="editorHelp">Um filme por linha. Troca, acrescenta ou elimina títulos.</p>
+            <label class="sr-only" for="movies" data-i18n="moviesLabel">Filmes a incluir na roleta, um por linha</label>
+            <textarea id="movies" spellcheck="false" rows="12" maxlength="8000"></textarea>
+            <div class="editor-actions"><button class="text-button" id="reset" type="button" data-i18n="reset">Repor a seleção inicial</button></div>
+          </div>
+          <div class="list-footer"><span id="list-status" role="status">Lista pronta para rodar</span></div>
+          <button class="text-button finish-edit" id="finish-edit" type="button" hidden data-i18n="finishEdit">Concluir edição</button>
+        </aside>
+        <section class="history-panel"><div class="history-heading"><div><span class="eyebrow" data-i18n="historyEyebrow">AS SESSÕES PASSADAS</span><h2>Wall of Fame</h2><p id="history-stats"></p></div><button class="text-button" id="clear-history" type="button" data-i18n="clearHistory">Limpar histórico</button></div><p class="history-note" data-i18n="historyNote">Os sorteios ficam guardados apenas neste navegador.</p><ol id="history"></ol><button class="text-button history-toggle" id="history-toggle" type="button" hidden>Mostrar mais</button></section>
       </div>
     </div>
   </main>
-  <footer><span>FEITO PARA NOITES QUE NÃO TE DEIXAM DORMIR.</span><span>Boa sorte. Vais precisar dela. <span aria-hidden="true">✦</span></span></footer>
+  <footer><span data-i18n="footerLeft">FEITO PARA NOITES QUE NÃO TE DEIXAM DORMIR.</span><span><span data-i18n="footerRight">Boa sessão. Vais precisar de pipocas.</span> <span aria-hidden="true">✦</span></span></footer>
 </body>
 </html>
-
