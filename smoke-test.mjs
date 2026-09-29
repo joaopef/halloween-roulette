@@ -4,13 +4,15 @@ import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import tmdbProxy, { CinemaRateLimiter } from './tmdb-proxy/worker.mjs';
 
-const i18nKeys = ['eyebrow', 'headline1', 'headline2', 'intro', 'wheelCaption', 'spin', 'collectionEyebrow', 'collectionTitle', 'collectionSummary', 'editMovies', 'editorHelp', 'moviesLabel', 'reset', 'finishEdit', 'historyEyebrow', 'clearHistory', 'historyNote', 'footerLeft', 'footerRight'];
+const i18nKeys = ['eyebrow', 'headline1', 'headline2', 'intro', 'wheelCaption', 'spin', 'collectionEyebrow', 'collectionTitle', 'collectionSummary', 'editMovies', 'editorHelp', 'moviesLabel', 'reset', 'finishEdit', 'filterTitle', 'surpriseTitle', 'metadataTitle', 'historyEyebrow', 'clearHistory', 'historyNote', 'footerLeft', 'footerRight'];
 
 async function createApp(seed = {}, options = {}) {
   const nodes = new Map();
   function makeElement(selector) {
     const classes = new Set();
-    const element = { selector, value: '', textContent: '', innerHTML: '', disabled: false, checked: true, hidden: false, children: [], attributes: {}, listeners: {}, style: {}, dataset: {}, options: selector === '#theme' ? [{ textContent: '' }, { textContent: '' }] : [], classList: { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, toggle(name, force) { if (force ?? !classes.has(name)) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) }, addEventListener(type, fn) { this.listeners[type] = fn; }, dispatch(type) { return this.listeners[type]?.({ target: this, preventDefault() {} }); }, setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name] ?? null; }, removeAttribute(name) { delete this.attributes[name]; }, replaceChildren() { this.children = []; }, append(...items) { this.children.push(...items); } };
+    const value = selector.match(/#(?:filter|metadata)-mood-(light|scary|nostalgic)$/)?.[1] ?? '';
+    const options = selector === '#theme' ? [{ textContent: '', value: 'halloween' }, { textContent: '', value: 'christmas' }] : selector === '#filter-duration' ? ['any', '90', '120', '150', '180'].map(value => ({ value, textContent: '' })) : [];
+    const element = { selector, value, textContent: '', innerHTML: '', disabled: false, checked: false, hidden: false, children: [], attributes: {}, listeners: {}, style: {}, dataset: {}, options, classList: { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, toggle(name, force) { if (force ?? !classes.has(name)) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) }, addEventListener(type, fn) { this.listeners[type] = fn; }, dispatch(type) { return this.listeners[type]?.({ target: this, preventDefault() {} }); }, setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name] ?? null; }, removeAttribute(name) { delete this.attributes[name]; }, replaceChildren() { this.children = []; if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options = []; }, append(...items) { this.children.push(...items); if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options.push(...items); }, querySelector(query) { const value = query.match(/\[value="([^"]+)"\]/)?.[1]; return this.options.find(option => option.value === value) ?? null; }, focus() { this.focused = true; } };
     element.firstElementChild = { style: {} };
     return element;
   }
@@ -52,6 +54,8 @@ assert.match(node('#catalog-status').textContent, /TMDB não está ativa/);
 assert.equal(node('#tmdb-attribution').hidden, true, 'inactive TMDB does not claim an active integration');
 assert.equal(node('#history-stats').textContent, '17 filmes diferentes · 24 sorteios');
 assert.equal(node('#history').children.length, 5);
+assert.equal(evaluate("playlistRecords().find(movie => movie.title === 'Beetlejuice (1988)').runtimeMinutes"), 92, 'exact starter matches receive curated runtime metadata');
+assert.equal(evaluate("playlistRecords().find(movie => movie.title === 'Beetlejuice (1988)').moods.includes('light')"), true);
 assert.equal(audios.every(audio => audio.playCount === 0), true, 'page load must not autoplay');
 
 node('#history-toggle').dispatch('click');
@@ -62,7 +66,7 @@ assert.equal(node('#history').children.length, 5);
 
 node('#language').value = 'en'; node('#language').dispatch('change');
 assert.equal(sandbox.document.documentElement.lang, 'en');
-assert.equal(JSON.parse(storage.get('cinema-roulette-v3')).language, 'en', 'language preference persists');
+assert.equal(JSON.parse(storage.get('cinema-roulette-v4')).language, 'en', 'language preference persists');
 assert.equal(node('i18n:collectionTitle').textContent, 'Movies on the wheel');
 assert.equal(node('#history-stats').textContent, '17 unique movies · 24 draws');
 assert.equal(node('#history').children.length, 5, 'language switch preserves wall of fame view');
@@ -87,16 +91,16 @@ assert.equal(node('#movie-editor').hidden, true);
 node('#sound').dispatch('click');
 assert.equal(node('#sound').getAttribute('aria-pressed'), 'false');
 assert.equal(node('#sound').getAttribute('aria-label'), 'Turn sound on');
-assert.equal(JSON.parse(storage.get('cinema-roulette-v3')).soundEnabled, false);
+assert.equal(JSON.parse(storage.get('cinema-roulette-v4')).soundEnabled, false);
 node('#sound').dispatch('click');
-assert.equal(JSON.parse(storage.get('cinema-roulette-v3')).soundEnabled, true);
+assert.equal(JSON.parse(storage.get('cinema-roulette-v4')).soundEnabled, true);
 const pendingSpin = evaluate('spin()');
 assert.equal(animationFrames.length, 1);
 assert.equal(audios[0].paused, false, 'roll sound starts during spin when enabled');
 assert.equal(node('#movies').disabled, true); assert.equal(node('#reset').disabled, true);
 node('#sound').dispatch('click');
 assert.equal(audios.every(audio => audio.paused), true, 'disabling sound silences all audio immediately');
-assert.equal(JSON.parse(storage.get('cinema-roulette-v3')).soundEnabled, false);
+assert.equal(JSON.parse(storage.get('cinema-roulette-v4')).soundEnabled, false);
 node('#sound').dispatch('click');
 assert.equal(audios[0].paused, false, 'reenabling sound resumes the wheel while spinning');
 assert.equal(node('#theme').disabled, true, 'theme cannot change in the middle of a spin');
@@ -108,6 +112,9 @@ const titleBeforeLanguageChange = node('#result-title').textContent;
 node('#language').value = 'pt-PT'; node('#language').dispatch('change');
 assert.equal(node('#result-title').textContent, titleBeforeLanguageChange, 'language switch preserves selected movie');
 assert.equal(node('#result-description').textContent, 'Apaga as luzes e carrega no play. Boa sessão!', 'language switch translates result instructions without changing the movie');
+assert.equal(node('#result-label').textContent, 'O FILME DESTA NOITE', 'the completed result label follows the active language');
+assert.equal(node('#hint').textContent, 'O destino escolheu. Agora só faltam as pipocas.');
+assert.equal(node('#history-title').textContent, 'Mural da Fama');
 assert.equal(node('#result').classList.contains('winner'), true);
 assert.equal(node('#movies').disabled, false); assert.equal(node('#reset').disabled, false);
 assert.equal(audios[0].paused, true);
@@ -115,15 +122,15 @@ assert.equal(audios[1].paused, false, 'ending chime plays after the spin when en
 const selectedByPointer = evaluate('Math.floor(((Math.PI * 2 - rotation) % (Math.PI * 2)) / (Math.PI * 2 / movieList().length))');
 assert.equal(['A', 'B'][selectedByPointer], result.movie);
 assert.equal(evaluate('winningIndex'), selectedByPointer, 'highlighted slice matches pointer and announcement');
-const historyBeforeViewed = JSON.stringify(JSON.parse(storage.get('cinema-roulette-v3')).themes.halloween.history);
+const historyBeforeViewed = JSON.stringify(JSON.parse(storage.get('cinema-roulette-v4')).themes.halloween.history);
 node('#watch-toggle').dispatch('click');
 assert.equal(node('#watch-toggle').textContent, 'Desmarcar como visto');
-const savedAfterViewed = JSON.parse(storage.get('cinema-roulette-v3'));
+const savedAfterViewed = JSON.parse(storage.get('cinema-roulette-v4'));
 assert.equal(savedAfterViewed.themes.halloween.viewed.includes(result.id), true);
 assert.equal(JSON.stringify(savedAfterViewed.themes.halloween.history), historyBeforeViewed, 'marking watched does not change draw history');
 node('#watch-toggle').dispatch('click');
 assert.equal(node('#watch-toggle').textContent, 'Marcar como visto', 'watched status can be undone');
-assert.equal(JSON.parse(storage.get('cinema-roulette-v3')).themes.halloween.viewed.includes(result.id), false);
+assert.equal(JSON.parse(storage.get('cinema-roulette-v4')).themes.halloween.viewed.includes(result.id), false);
 node('#watch-toggle').dispatch('click');
 node('#avoid-viewed').checked = true; node('#avoid-viewed').dispatch('change');
 assert.equal(node('#eligible-count').textContent, 1, 'the watched result is excluded from the eligible count');
@@ -140,7 +147,7 @@ assert.equal(node('#eligible-count').textContent, 2, 'including watched movies r
 node('#avoid-viewed').checked = true; node('#avoid-viewed').dispatch('change');
 node('#reset-viewed').dispatch('click');
 assert.equal(node('#eligible-count').textContent, 2, 'reset watched list leaves the playlist intact');
-assert.equal(JSON.stringify(JSON.parse(storage.get('cinema-roulette-v3')).themes.halloween.history) === historyBeforeViewed, false, 'only actual spins add to history');
+assert.equal(JSON.stringify(JSON.parse(storage.get('cinema-roulette-v4')).themes.halloween.history) === historyBeforeViewed, false, 'only actual spins add to history');
 
 node('#sound').dispatch('click');
 assert.equal(audios.every(audio => audio.paused), true, 'turning sound off after the spin silences the chime');
@@ -155,6 +162,7 @@ assert.equal(node('#count').textContent, 13);
 assert.equal(node('#history-stats').textContent, '0 filmes diferentes · 0 sorteios');
 assert.equal(node('body').dataset.theme, 'christmas');
 assert.equal(node('#brand-name').innerHTML, 'CHRISTMAS <b>ROULETTE</b>');
+assert.equal(node('#wheel-theme-label').textContent, 'NATAL', 'Christmas wheel label is localized');
 assert.equal(node('#movies').value.includes('Klaus (2019)'), true);
 assert.equal(node('#catalog-results').children.length, 22, 'offline Christmas catalogue renders curated cards');
 node('#catalog-search').value = 'Home Alone'; node('#catalog-search').dispatch('input');
@@ -182,7 +190,7 @@ assert.equal(node('#history-stats').textContent, '20 filmes diferentes · 27 sor
 node('#theme').value = 'christmas'; node('#theme').dispatch('change');
 assert.equal(node('#movies').value, 'Holiday A (2000)\nHoliday B (2001)');
 assert.equal(node('#history-stats').textContent, '0 filmes diferentes · 0 sorteios');
-assert.equal(JSON.parse(storage.get('cinema-roulette-v3')).activeTheme, 'christmas', 'theme preference persists');
+assert.equal(JSON.parse(storage.get('cinema-roulette-v4')).activeTheme, 'christmas', 'theme preference persists');
 const restoredTheme = await createApp(Object.fromEntries([...storage].map(([key, raw]) => [key, JSON.parse(raw)])));
 assert.equal(restoredTheme.node('#theme').value, 'christmas');
 assert.equal(restoredTheme.node('#language').value, 'pt-PT');
@@ -198,8 +206,46 @@ assert.equal(migratedAgain.node('#history-stats').textContent, '1 filme diferent
 assert.equal(migratedAgain.node('#movies').value, 'Persisted One\nPersisted Two');
 const migratedV2 = await createApp({ 'cinema-roulette-v2': { version: 2, activeTheme: 'halloween', language: 'pt-PT', soundEnabled: true, themes: { halloween: { movies: 'Old A (1990)\nOld B (1991)', history: { 'Old A (1990)': 3 } }, christmas: { movies: 'New Year Film (2000)', history: {} } } } });
 assert.equal(migratedV2.node('#history-stats').textContent, '1 filme diferente · 3 sorteios');
-assert.deepEqual(JSON.parse(migratedV2.storage.get('cinema-roulette-v3')).themes.halloween.playlist.map(movie => movie.id), ['manual:old a (1990)', 'manual:old b (1991)']);
+assert.deepEqual(JSON.parse(migratedV2.storage.get('cinema-roulette-v4')).themes.halloween.playlist.map(movie => movie.id), ['manual:old a (1990)', 'manual:old b (1991)']);
 assert.equal(migratedV2.storage.has('cinema-roulette-v2'), true, 'version 2 remains recoverable after migration');
+const migratedV3 = await createApp({ 'cinema-roulette-v3': { version: 3, activeTheme: 'halloween', language: 'en', soundEnabled: true, themes: { halloween: { playlist: [{ id: 'manual:beetlejuice (1988)', title: 'Beetlejuice (1988)' }, { id: 'manual:unknown (2026)', title: 'Unknown (2026)' }], history: { 'manual:beetlejuice (1988)': { id: 'manual:beetlejuice (1988)', title: 'Beetlejuice (1988)', count: 7 } }, viewed: [], avoidViewed: false }, christmas: { playlist: [{ id: 'manual:klaus (2019)', title: 'Klaus (2019)' }], history: {}, viewed: [], avoidViewed: false } } } });
+assert.equal(migratedV3.node('#history-stats').textContent, '1 unique movie · 7 draws');
+assert.equal(migratedV3.node('#count').textContent, 2);
+assert.equal(JSON.parse(migratedV3.storage.get('cinema-roulette-v4')).themes.halloween.playlist[0].runtimeMinutes, 92, 'v3 migration attaches only an exact local title match');
+assert.equal(JSON.parse(migratedV3.storage.get('cinema-roulette-v4')).themes.halloween.playlist[1].runtimeMinutes, null, 'unmatched manual movies keep unknown metadata');
+assert.equal(migratedV3.storage.has('cinema-roulette-v3'), true, 'v3 remains recoverable after successful migration');
+const migratedV3Again = await createApp(Object.fromEntries([...migratedV3.storage].map(([key, raw]) => [key, JSON.parse(raw)])));
+assert.equal(migratedV3Again.node('#history-stats').textContent, '1 unique movie · 7 draws', 'v3-to-v4 migration is idempotent');
+
+const filteredApp = await createApp({ 'halloween-movies-v1': 'Beetlejuice (1988)\nHalloween (1978)\nOnly Unknown (2025)', 'halloween-history-v1': {} });
+filteredApp.node('#filter-mood-scary').checked = true; filteredApp.node('#filter-mood-scary').dispatch('change');
+assert.equal(filteredApp.node('#eligible-count').textContent, 1, 'mood filters keep only matching playlist records');
+filteredApp.node('#filter-mood-scary').checked = false; filteredApp.node('#filter-mood-scary').dispatch('change');
+filteredApp.node('#filter-duration').value = '90'; filteredApp.node('#filter-duration').dispatch('change');
+assert.equal(filteredApp.node('#eligible-count').textContent, 0, 'a 90-minute filter excludes a 91-minute film');
+assert.match(filteredApp.node('#filter-status').textContent, /sem duração conhecida/, 'unknown runtimes are explained when a time limit excludes them');
+filteredApp.node('#metadata-movie').value = 'manual:only unknown (2025)'; filteredApp.node('#metadata-movie').dispatch('change');
+filteredApp.node('#metadata-runtime').value = '80'; filteredApp.node('#metadata-mood-light').checked = true;
+filteredApp.node('#save-metadata').dispatch('click');
+assert.equal(vm.runInContext("playlistRecords().find(movie => movie.title === 'Only Unknown (2025)').runtimeMinutes", filteredApp.sandbox), 80, 'users can complete unknown runtime metadata');
+assert.equal(filteredApp.node('#filter-status').textContent.includes('sem duração conhecida'), false, 'manual runtime removes the unknown-duration exclusion notice');
+filteredApp.node('#filter-mood-scary').checked = false; filteredApp.node('#filter-mood-light').checked = true; filteredApp.node('#filter-mood-light').dispatch('change');
+assert.equal(filteredApp.node('#eligible-count').textContent, 1, 'mood metadata makes a manually completed film eligible');
+filteredApp.node('#surprise-mood').value = 'scary'; filteredApp.node('#surprise-duration').value = '90'; filteredApp.node('#surprise-mood').dispatch('change');
+assert.equal(filteredApp.node('#surprise-submit').disabled, true, 'surprise session blocks criteria with no matching movies');
+assert.equal(filteredApp.node('#surprise-discover').hidden, false, 'empty surprise pool offers movie discovery');
+filteredApp.node('#surprise-mood').value = 'light'; filteredApp.node('#surprise-mood').dispatch('change');
+assert.equal(filteredApp.node('#surprise-submit').disabled, false, 'surprise session enables when a matching movie exists');
+const filteredPlaylistBeforeSurprise = filteredApp.node('#movies').value;
+filteredApp.setReduceMotion(true); filteredApp.node('#surprise-submit').dispatch('click'); filteredApp.animationFrames.shift()(0);
+assert.equal(filteredApp.node('#result-title').textContent, 'Only Unknown (2025)', 'surprise draw selects from the constrained pool');
+assert.equal(filteredApp.node('#movies').value, filteredPlaylistBeforeSurprise, 'surprise draw does not replace or add to the playlist');
+assert.equal(filteredApp.node('#history-stats').textContent, '1 filme diferente · 1 sorteio');
+filteredApp.node('#clear-filters').dispatch('click');
+assert.equal(filteredApp.node('#eligible-count').textContent, 3, 'clear filters restores all movies and includes viewed titles');
+assert.equal(filteredApp.node('#filter-duration').value, 'any');
+filteredApp.node('#language').value = 'en'; filteredApp.node('#language').dispatch('change');
+assert.equal(filteredApp.node('i18n:filterTitle').textContent, 'Roulette filters');
 
 const emptyHistory = await createApp({ 'cinema-roulette-v2': { version: 2, activeTheme: 'halloween', language: 'pt-PT', soundEnabled: true, themes: { halloween: { movies: 'A\nB', history: {} }, christmas: { movies: 'C\nD', history: {} } } } });
 assert.equal(emptyHistory.node('#history-stats').textContent, '0 filmes diferentes · 0 sorteios');
@@ -266,7 +312,7 @@ assert.equal(failedCatalog.node('#catalog-results').children.length, 1, 'network
 
 const html = await readFile('index.html', 'utf8');
 const css = await readFile('style.css', 'utf8');
-assert.match(html, /Wall of Fame/); assert.match(html, /aria-live="polite"/); assert.match(html, /<svg/);
+assert.match(html, /Mural da Fama/); assert.match(html, /aria-live="polite"/); assert.match(html, /<svg/);
 assert.match(css, /:focus-visible/); assert.match(css, /prefers-reduced-motion:reduce/); assert.match(css, /min-width:44px/);
 
 const allowedOrigin = 'https://joaopef.github.io';

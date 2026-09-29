@@ -44,7 +44,6 @@
           <div class="panel-heading"><div><span class="eyebrow" data-i18n="collectionEyebrow">A TUA SESSÃO DE CINEMA</span><h2 data-i18n="collectionTitle">Filmes na roleta</h2></div><span class="count" id="count">19</span></div>
           <p class="panel-description"><strong id="movie-summary-count">19</strong> <span data-i18n="collectionSummary">possibilidades para esta noite. A tua coleção, pronta a entrar em cena.</span></p>
           <p class="eligibility-summary" id="eligibility-summary" role="status" aria-live="polite"><strong id="eligible-count">19</strong> <span id="eligible-label">filmes elegíveis</span></p>
-          <label class="viewed-choice"><input id="avoid-viewed" type="checkbox"><span id="avoid-viewed-label">Evitar filmes já vistos</span></label>
           <div class="exhausted-actions" id="exhausted-actions" hidden><p id="exhausted-message"></p><button class="text-button" id="include-viewed" type="button">Incluir filmes vistos</button><button class="text-button" id="reset-viewed" type="button">Reiniciar lista de vistos</button></div>
           <button class="text-button edit-toggle" id="edit-toggle" type="button" aria-expanded="false" aria-controls="movie-editor" data-i18n="editMovies">Editar filmes</button>
           <div id="movie-editor" hidden>
@@ -56,7 +55,50 @@
           <div class="list-footer"><span id="list-status" role="status">Lista pronta para rodar</span></div>
           <button class="text-button finish-edit" id="finish-edit" type="button" hidden data-i18n="finishEdit">Concluir edição</button>
         </aside>
-        <section class="history-panel"><div class="history-heading"><div><span class="eyebrow" data-i18n="historyEyebrow">AS SESSÕES PASSADAS</span><h2>Wall of Fame</h2><p id="history-stats"></p></div><button class="text-button" id="clear-history" type="button" data-i18n="clearHistory">Limpar histórico</button></div><p class="history-note" data-i18n="historyNote">Os sorteios ficam guardados apenas neste navegador.</p><ol id="history"></ol><button class="text-button history-toggle" id="history-toggle" type="button" hidden>Mostrar mais</button></section>
+        <details class="advanced-panel filter-panel" id="filter-panel">
+          <summary id="filter-title" data-i18n="filterTitle">Filtros</summary>
+          <div class="advanced-body">
+            <p id="filter-help" class="advanced-help"></p>
+            <fieldset class="filter-moods" id="filter-moods">
+              <legend id="mood-legend"></legend>
+              <label><input type="checkbox" id="filter-mood-light" value="light"><span id="mood-light-label"></span></label>
+              <label><input type="checkbox" id="filter-mood-scary" value="scary"><span id="mood-scary-label"></span></label>
+              <label><input type="checkbox" id="filter-mood-nostalgic" value="nostalgic"><span id="mood-nostalgic-label"></span></label>
+            </fieldset>
+            <label class="select-filter"><span id="duration-label"></span><select id="filter-duration"><option value="any">Qualquer duração</option><option value="90">Até 90 min</option><option value="120">Até 120 min</option><option value="150">Até 150 min</option><option value="180">Até 180 min</option></select></label>
+            <label class="viewed-choice"><input id="avoid-viewed" type="checkbox"><span id="avoid-viewed-label">Evitar filmes já vistos</span></label>
+            <p id="filter-status" role="status" aria-live="polite"></p>
+            <button class="text-button clear-filters" id="clear-filters" type="button"></button>
+          </div>
+        </details>
+        <details class="advanced-panel surprise-panel" id="surprise-panel">
+          <summary id="surprise-title" data-i18n="surpriseTitle">Sessão surpresa</summary>
+          <div class="advanced-body">
+            <p id="surprise-help" class="advanced-help"></p>
+            <label class="select-filter"><span id="surprise-mood-label"></span><select id="surprise-mood"></select></label>
+            <label class="select-filter"><span id="surprise-duration-label"></span><select id="surprise-duration"></select></label>
+            <button class="text-button primary-action" id="surprise-submit" type="button"></button>
+            <p id="surprise-status" role="status" aria-live="polite"></p>
+            <button class="text-button" id="surprise-discover" type="button" hidden></button>
+          </div>
+        </details>
+        <details class="advanced-panel metadata-panel" id="metadata-panel">
+          <summary id="metadata-title" data-i18n="metadataTitle">Metadados dos filmes</summary>
+          <div class="advanced-body">
+            <p id="metadata-help" class="advanced-help"></p>
+            <label class="select-filter"><span id="metadata-movie-label"></span><select id="metadata-movie"></select></label>
+            <label class="select-filter"><span id="metadata-runtime-label"></span><input id="metadata-runtime" type="number" min="1" max="600" inputmode="numeric"></label>
+            <fieldset class="metadata-moods" id="metadata-moods">
+              <legend id="metadata-mood-legend"></legend>
+              <label><input type="checkbox" id="metadata-mood-light" value="light"><span id="metadata-light-label"></span></label>
+              <label><input type="checkbox" id="metadata-mood-scary" value="scary"><span id="metadata-scary-label"></span></label>
+              <label><input type="checkbox" id="metadata-mood-nostalgic" value="nostalgic"><span id="metadata-nostalgic-label"></span></label>
+            </fieldset>
+            <button class="text-button primary-action" id="save-metadata" type="button"></button>
+            <p id="metadata-status" role="status" aria-live="polite"></p>
+          </div>
+        </details>
+        <section class="history-panel"><div class="history-heading"><div><span class="eyebrow" data-i18n="historyEyebrow">AS SESSÕES PASSADAS</span><h2 id="history-title">Mural da Fama</h2><p id="history-stats"></p></div><button class="text-button" id="clear-history" type="button" data-i18n="clearHistory">Limpar histórico</button></div><p class="history-note" data-i18n="historyNote">Os sorteios ficam guardados apenas neste navegador.</p><ol id="history"></ol><button class="text-button history-toggle" id="history-toggle" type="button" hidden>Mostrar mais</button></section>
         <details class="discovery-panel" id="discover-panel">
           <summary id="discover-summary" data-i18n="discoverTitle">Descobrir filmes</summary>
           <div class="discover-body">

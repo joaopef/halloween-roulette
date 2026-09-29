@@ -9,13 +9,21 @@ const languageSelect = document.querySelector('#language');
 const themeSelect = document.querySelector('#theme');
 const watchButton = document.querySelector('#watch-toggle');
 const avoidViewedInput = document.querySelector('#avoid-viewed');
+const durationFilter = document.querySelector('#filter-duration');
+const filterMoodInputs = ['light', 'scary', 'nostalgic'].map(mood => document.querySelector(`#filter-mood-${mood}`));
+const metadataMovieSelect = document.querySelector('#metadata-movie');
+const metadataRuntimeInput = document.querySelector('#metadata-runtime');
+const metadataMoodInputs = ['light', 'scary', 'nostalgic'].map(mood => document.querySelector(`#metadata-mood-${mood}`));
+const surpriseMoodSelect = document.querySelector('#surprise-mood');
+const surpriseDurationSelect = document.querySelector('#surprise-duration');
 const catalogSearchForm = document.querySelector('#catalog-search-form');
 const catalogSearchInput = document.querySelector('#catalog-search');
 const catalogResults = document.querySelector('#catalog-results');
 const relatedResults = document.querySelector('#related-results');
 const spinIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg>';
-const STORAGE_KEY = 'cinema-roulette-v3';
-const PREVIOUS_STORAGE_KEY = 'cinema-roulette-v2';
+const STORAGE_KEY = 'cinema-roulette-v4';
+const PREVIOUS_STORAGE_KEY = 'cinema-roulette-v3';
+const LEGACY_STORAGE_KEY = 'cinema-roulette-v2';
 const HISTORY_LIMIT = 5;
 let rotation = 0;
 let spinning = false;
@@ -26,6 +34,7 @@ let selectedCollection = 'all';
 let remoteSearchResults = null;
 let catalogRequestController = null;
 let catalogStatusOverride = '';
+let metadataStatusKey = '';
 
 const COPY = {
   'pt-PT': {
@@ -38,6 +47,11 @@ const COPY = {
     collectionEyebrow: 'A TUA SESSÃO DE CINEMA', collectionTitle: 'Filmes na roleta', collectionSummary: 'possibilidades para esta noite. A tua coleção, pronta a entrar em cena.', editMovies: 'Editar filmes', editorHelp: 'Um filme por linha. Troca, acrescenta ou elimina títulos.', moviesLabel: 'Filmes a incluir na roleta, um por linha', reset: 'Repor a seleção inicial', finishEdit: 'Concluir edição',
     eligibleMovies: count => `${count} ${count === 1 ? 'filme elegível' : 'filmes elegíveis'}`, avoidViewed: 'Evitar filmes já vistos', exhausted: 'Todos os filmes da lista estão marcados como vistos. Podes incluir os vistos ou reiniciar a lista de vistos deste tema.', includeViewed: 'Incluir filmes vistos', resetViewed: 'Reiniciar lista de vistos',
     markViewed: 'Marcar como visto', undoViewed: 'Desmarcar como visto', viewed: 'Visto',
+    filterTitle: 'Filtros da roleta', filterHelp: 'Os filtros aplicam-se apenas aos filmes da tua lista. Se escolheres mais do que uma disposição, basta corresponder a uma.', moodLegend: 'Disposição', moodLight: 'Leve, com ambiente familiar', moodScary: 'Assustador', moodNostalgic: 'Nostálgico',
+    durationLabel: 'Duração máxima', durationAny: 'Qualquer duração', duration90: 'Até 90 min', duration120: 'Até 120 min', duration150: 'Até 150 min', duration180: 'Até 180 min',
+    filterStatusUnknown: count => `${count} ${count === 1 ? 'filme' : 'filmes'} sem duração conhecida ficam excluídos pelo limite de tempo. Podes preencher a duração em Metadados dos filmes.`, filterStatusNoMood: count => `${count} ${count === 1 ? 'filme' : 'filmes'} sem disposição ficam excluídos pela seleção atual.`, noFilterMatches: 'Nenhum filme corresponde aos filtros. Limpa ou ajusta os filtros.', clearFilters: 'Limpar filtros',
+    surpriseTitle: 'Sessão surpresa', surpriseHelp: 'Sorteia apenas entre os filmes da tua lista que correspondem à disposição e ao tempo escolhidos. Não adiciona nem remove filmes.', surpriseMoodLabel: 'Disposição', surpriseDurationLabel: 'Tempo disponível', surpriseAnyMood: 'Qualquer disposição', surpriseRun: 'Sortear sessão surpresa', surpriseMatches: count => `${count} ${count === 1 ? 'filme corresponde' : 'filmes correspondem'} a estes critérios.`, surpriseNoMatch: 'Não há filmes na tua lista que correspondam a estes critérios. Ajusta os filtros ou descobre filmes.', surpriseDiscover: 'Descobrir filmes',
+    metadataTitle: 'Metadados dos filmes', metadataHelp: 'Completa a duração e a disposição de filmes da tua lista. “Leve, com ambiente familiar” descreve o tom editorial e não garante adequação etária.', metadataMovieLabel: 'Filme', metadataRuntimeLabel: 'Duração em minutos', metadataMoodLegend: 'Disposições', saveMetadata: 'Guardar metadados', metadataSaved: 'Metadados guardados.', metadataInvalid: 'Indica uma duração entre 1 e 600 minutos ou deixa o campo vazio.', metadataNoMovies: 'Não há filmes na lista para editar.',
     discoverTitle: 'Descobrir filmes', discoverIntro: 'Sugestões temáticas curadas. Não são recomendações personalizadas por IA.', searchLabel: 'Pesquisar filmes por título', searchPlaceholder: 'Título do filme', searchButton: 'Pesquisar',
     collectionLabel: 'Coleções temáticas', collectionAll: 'Todas as sugestões', collectionHalloweenFamily: 'Halloween em família', collectionHorror: 'Terror a sério', collectionChristmasClassics: 'Clássicos de Natal', collectionChristmasFamily: 'Natal em família',
     localCatalogStatus: 'Catálogo local curado. A pesquisa online TMDB não está ativa.', noCatalogResults: 'Não foram encontradas sugestões nesta coleção.', searchWorking: 'A pesquisar no catálogo TMDB…', tmdbSearchResults: count => `${count} resultados de pesquisa TMDB.`, tmdbNoResults: 'A pesquisa TMDB não encontrou filmes.', tmdbSearchError: 'Não foi possível contactar o catálogo TMDB. A mostrar as sugestões locais.',
@@ -45,7 +59,7 @@ const COPY = {
     durationValue: minutes => `${minutes} min`, durationUnknown: 'Duração desconhecida', tmdbRating: rating => `TMDB ${rating.toFixed(1)}`, imdbLink: 'IMDb', noGenres: 'Géneros indisponíveis',
     relatedTitle: 'Sugestões relacionadas do TMDB', relatedNoIds: 'A tua playlist ainda não tem IDs TMDB para pedir recomendações relacionadas.', relatedOffline: 'As recomendações relacionadas ficam disponíveis quando o serviço TMDB estiver configurado.', relatedLoading: 'A carregar sugestões relacionadas…', relatedEmpty: 'O TMDB não devolveu sugestões relacionadas.', relatedError: 'Não foi possível carregar sugestões relacionadas.',
     tmdbNotice: 'Este produto utiliza a API TMDB, mas não é aprovado nem certificado pelo TMDB.', tmdbLogoAlt: 'The Movie Database (TMDB)',
-    historyEyebrow: 'AS SESSÕES PASSADAS', clearHistory: 'Limpar histórico', historyNote: 'Os sorteios ficam guardados apenas neste navegador.',
+    historyEyebrow: 'AS SESSÕES PASSADAS', wallTitle: 'Mural da Fama', clearHistory: 'Limpar histórico', historyNote: 'Os sorteios ficam guardados apenas neste navegador.',
     historyStats: (movies, draws) => `${movies} ${movies === 1 ? 'filme diferente' : 'filmes diferentes'} · ${draws} ${draws === 1 ? 'sorteio' : 'sorteios'}`,
     historyCount: count => `${count} ${count === 1 ? 'vez' : 'vezes'}`, emptyHistory: 'O teu primeiro filme vai entrar para a história.', more: 'Mostrar mais', less: 'Mostrar menos',
     ready: 'Lista pronta para rodar', maximum: 'Máximo de 60 filmes', atLeastTwo: 'Adiciona pelo menos 1 filme', chooseRange: 'Adiciona até 60 filmes para começar.', hint: count => `${count} filmes elegíveis. Uma escolha. Tens coragem?`,
@@ -63,6 +77,11 @@ const COPY = {
     collectionEyebrow: 'YOUR MOVIE NIGHT', collectionTitle: 'Movies on the wheel', collectionSummary: 'possibilities for tonight. Your collection is ready for its close-up.', editMovies: 'Edit movies', editorHelp: 'One movie per line. Add, replace or remove titles.', moviesLabel: 'Movies on the wheel, one per line', reset: 'Restore starter selection', finishEdit: 'Done editing',
     eligibleMovies: count => `${count} ${count === 1 ? 'eligible movie' : 'eligible movies'}`, avoidViewed: 'Avoid movies already watched', exhausted: 'Every movie in this collection is marked as watched. Include watched movies or reset this theme’s watched list.', includeViewed: 'Include watched movies', resetViewed: 'Reset watched list',
     markViewed: 'Mark as watched', undoViewed: 'Undo watched status', viewed: 'Watched',
+    filterTitle: 'Roulette filters', filterHelp: 'Filters apply only to movies in your list. If you choose more than one mood, a movie can match any of them.', moodLegend: 'Mood', moodLight: 'Light, family-oriented tone', moodScary: 'Scary', moodNostalgic: 'Nostalgic',
+    durationLabel: 'Maximum runtime', durationAny: 'Any runtime', duration90: 'Up to 90 min', duration120: 'Up to 120 min', duration150: 'Up to 150 min', duration180: 'Up to 180 min',
+    filterStatusUnknown: count => `${count} ${count === 1 ? 'movie has' : 'movies have'} no known runtime and are excluded by the time limit. Add a runtime under Movie metadata.`, filterStatusNoMood: count => `${count} ${count === 1 ? 'movie has' : 'movies have'} no mood label and is excluded by the current selection.`, noFilterMatches: 'No movies match these filters. Clear or adjust the filters.', clearFilters: 'Clear filters',
+    surpriseTitle: 'Surprise session', surpriseHelp: 'Draw only from movies in your list that match the selected mood and time. This does not add or remove movies.', surpriseMoodLabel: 'Mood', surpriseDurationLabel: 'Time available', surpriseAnyMood: 'Any mood', surpriseRun: 'Draw a surprise session', surpriseMatches: count => `${count} ${count === 1 ? 'movie matches' : 'movies match'} these criteria.`, surpriseNoMatch: 'No movies in your list match these criteria. Adjust the filters or discover movies.', surpriseDiscover: 'Discover movies',
+    metadataTitle: 'Movie metadata', metadataHelp: 'Fill in runtime and mood for movies on your list. “Light, family-oriented” describes editorial tone and does not guarantee age suitability.', metadataMovieLabel: 'Movie', metadataRuntimeLabel: 'Runtime in minutes', metadataMoodLegend: 'Moods', saveMetadata: 'Save metadata', metadataSaved: 'Metadata saved.', metadataInvalid: 'Enter a runtime from 1 to 600 minutes or leave it blank.', metadataNoMovies: 'There are no movies on the list to edit.',
     discoverTitle: 'Discover movies', discoverIntro: 'Curated theme suggestions. These are not AI-personalized recommendations.', searchLabel: 'Search movies by title', searchPlaceholder: 'Movie title', searchButton: 'Search',
     collectionLabel: 'Themed collections', collectionAll: 'All suggestions', collectionHalloweenFamily: 'Halloween for families', collectionHorror: 'Proper scares', collectionChristmasClassics: 'Christmas classics', collectionChristmasFamily: 'Christmas for families',
     localCatalogStatus: 'Curated local catalogue. TMDB online search is not active.', noCatalogResults: 'No suggestions were found in this collection.', searchWorking: 'Searching the TMDB catalogue…', tmdbSearchResults: count => `${count} TMDB search results.`, tmdbNoResults: 'TMDB search found no movies.', tmdbSearchError: 'Could not reach the TMDB catalogue. Showing local suggestions.',
@@ -70,7 +89,7 @@ const COPY = {
     durationValue: minutes => `${minutes} min`, durationUnknown: 'Duration unknown', tmdbRating: rating => `TMDB ${rating.toFixed(1)}`, imdbLink: 'IMDb', noGenres: 'Genres unavailable',
     relatedTitle: 'Related TMDB suggestions', relatedNoIds: 'Your playlist has no TMDB IDs yet, so related recommendations are unavailable.', relatedOffline: 'Related recommendations will be available when the TMDB service is configured.', relatedLoading: 'Loading related suggestions…', relatedEmpty: 'TMDB returned no related suggestions.', relatedError: 'Related suggestions could not be loaded.',
     tmdbNotice: 'This product uses the TMDB API but is not endorsed or certified by TMDB.', tmdbLogoAlt: 'The Movie Database (TMDB)',
-    historyEyebrow: 'PAST MOVIE NIGHTS', clearHistory: 'Clear history', historyNote: 'Draws are stored only in this browser.',
+    historyEyebrow: 'PAST MOVIE NIGHTS', wallTitle: 'Wall of Fame', clearHistory: 'Clear history', historyNote: 'Draws are stored only in this browser.',
     historyStats: (movies, draws) => `${movies} unique ${movies === 1 ? 'movie' : 'movies'} · ${draws} ${draws === 1 ? 'draw' : 'draws'}`,
     historyCount: count => `${count} ${count === 1 ? 'time' : 'times'}`, emptyHistory: 'Your first movie is waiting to make history.', more: 'Show more', less: 'Show less',
     ready: 'Ready to spin', maximum: 'Maximum of 60 movies', atLeastTwo: 'Add at least 2 movies', chooseRange: 'Choose between 2 and 60 movies to begin.', hint: count => `${count} movies. One choice. Dare to spin?`,
@@ -140,18 +159,35 @@ function makeThemeState(playlistInput, historyInput, flags = {}) {
   const playlist = Array.isArray(playlistInput) ? sanitizePlaylist(playlistInput, '') : parseMovieLines(playlistInput);
   const history = sanitizeHistory(historyInput, playlist);
   const viewed = Array.isArray(flags.viewed) ? [...new Set(flags.viewed.filter(id => typeof id === 'string'))] : [];
-  return { playlist, history, viewed, avoidViewed: flags.avoidViewed === true };
+  const moods = Array.isArray(flags.filters?.moods) ? [...new Set(flags.filters.moods.filter(mood => ['light', 'scary', 'nostalgic'].includes(mood)))] : [];
+  const maxDuration = [90, 120, 150, 180].includes(flags.filters?.maxDuration) ? flags.filters.maxDuration : null;
+  return { playlist, history, viewed, avoidViewed: flags.avoidViewed === true, filters: { moods, maxDuration } };
 }
-function migrateOldTheme(inputTheme, fallbackMovies, fallbackHistory) {
+function addExactEditorialMetadata(theme, themeData) {
+  const curatedMovies = CURATED_CATALOG[theme] ?? [];
+  themeData.playlist = themeData.playlist.map(movie => {
+    const editorial = curatedMovies.find(candidate => normalizeTitle(candidate.title) === normalizeTitle(movie.title));
+    if (!editorial) return movie;
+    return createMovie(movie.title, movie.source, {
+      ...movie,
+      runtimeMinutes: movie.runtimeMinutes ?? editorial.runtimeMinutes,
+      genres: movie.genres.length ? movie.genres : editorial.genres,
+      moods: movie.moods.length ? movie.moods : editorial.moods,
+      overview: movie.overview ?? editorial.overview
+    });
+  });
+  return themeData;
+}
+function migrateOldTheme(inputTheme, fallbackMovies, fallbackHistory, theme) {
   const movies = typeof inputTheme?.movies === 'string' ? inputTheme.movies : Array.isArray(inputTheme?.playlist) ? inputTheme.playlist : fallbackMovies;
   const history = inputTheme?.history ?? fallbackHistory;
-  return makeThemeState(movies, history, inputTheme ?? {});
+  return addExactEditorialMetadata(theme, makeThemeState(movies, history, inputTheme ?? {}));
 }
 function initialState() {
   const existing = parseStored(STORAGE_KEY, null);
-  if (existing && existing.version === 3 && existing.themes?.halloween && existing.themes?.christmas) {
+  if (existing && existing.version === 4 && existing.themes?.halloween && existing.themes?.christmas) {
     return {
-      version: 3,
+      version: 4,
       activeTheme: existing.activeTheme === 'christmas' ? 'christmas' : 'halloween',
       language: existing.language === 'en' ? 'en' : 'pt-PT',
       soundEnabled: existing.soundEnabled !== false,
@@ -162,15 +198,28 @@ function initialState() {
     };
   }
   const previous = parseStored(PREVIOUS_STORAGE_KEY, null);
-  if (previous && previous.version === 2 && previous.themes?.halloween && previous.themes?.christmas) {
+  if (previous && previous.version === 3 && previous.themes?.halloween && previous.themes?.christmas) {
     return {
-      version: 3,
+      version: 4,
       activeTheme: previous.activeTheme === 'christmas' ? 'christmas' : 'halloween',
       language: previous.language === 'en' ? 'en' : 'pt-PT',
       soundEnabled: typeof previous.soundEnabled === 'boolean' ? previous.soundEnabled : parseStored('halloween-sound-v1', true) === true,
       themes: {
-        halloween: migrateOldTheme(previous.themes.halloween, DEFAULT_MOVIES.join('\n'), LEGACY_HISTORY),
-        christmas: migrateOldTheme(previous.themes.christmas, CHRISTMAS_MOVIES.join('\n'), {})
+        halloween: migrateOldTheme(previous.themes.halloween, DEFAULT_MOVIES.join('\n'), LEGACY_HISTORY, 'halloween'),
+        christmas: migrateOldTheme(previous.themes.christmas, CHRISTMAS_MOVIES.join('\n'), {}, 'christmas')
+      }
+    };
+  }
+  const previousV2 = parseStored(LEGACY_STORAGE_KEY, null);
+  if (previousV2 && previousV2.version === 2 && previousV2.themes?.halloween && previousV2.themes?.christmas) {
+    return {
+      version: 4,
+      activeTheme: previousV2.activeTheme === 'christmas' ? 'christmas' : 'halloween',
+      language: previousV2.language === 'en' ? 'en' : 'pt-PT',
+      soundEnabled: typeof previousV2.soundEnabled === 'boolean' ? previousV2.soundEnabled : parseStored('halloween-sound-v1', true) === true,
+      themes: {
+        halloween: migrateOldTheme(previousV2.themes.halloween, DEFAULT_MOVIES.join('\n'), LEGACY_HISTORY, 'halloween'),
+        christmas: migrateOldTheme(previousV2.themes.christmas, CHRISTMAS_MOVIES.join('\n'), {}, 'christmas')
       }
     };
   }
@@ -183,8 +232,8 @@ function initialState() {
     language: parseStored('cinema-language-v1', 'pt-PT') === 'en' ? 'en' : 'pt-PT',
     soundEnabled: parseStored('halloween-sound-v1', true) === true,
     themes: {
-      halloween: makeThemeState(typeof savedMovies === 'string' ? savedMovies : DEFAULT_MOVIES.join('\n'), savedHistory),
-      christmas: makeThemeState(CHRISTMAS_MOVIES.join('\n'), {})
+      halloween: addExactEditorialMetadata('halloween', makeThemeState(typeof savedMovies === 'string' ? savedMovies : DEFAULT_MOVIES.join('\n'), savedHistory)),
+      christmas: addExactEditorialMetadata('christmas', makeThemeState(CHRISTMAS_MOVIES.join('\n'), {}))
     }
   };
 }
@@ -209,7 +258,7 @@ function reconcilePlaylist(value) {
   });
 }
 function persistState() {
-  state.version = 3;
+  state.version = 4;
   state.activeTheme = activeTheme;
   state.language = language;
   state.soundEnabled = soundEnabled;
@@ -259,6 +308,41 @@ function renderLanguage() {
   document.querySelector('#exhausted-message').textContent = translate('exhausted');
   document.querySelector('#include-viewed').textContent = translate('includeViewed');
   document.querySelector('#reset-viewed').textContent = translate('resetViewed');
+  document.querySelector('#avoid-viewed-label').textContent = translate('avoidViewed');
+  document.querySelector('#filter-help').textContent = translate('filterHelp');
+  document.querySelector('#mood-legend').textContent = translate('moodLegend');
+  document.querySelector('#mood-light-label').textContent = translate('moodLight');
+  document.querySelector('#mood-scary-label').textContent = translate('moodScary');
+  document.querySelector('#mood-nostalgic-label').textContent = translate('moodNostalgic');
+  document.querySelector('#duration-label').textContent = translate('durationLabel');
+  for (const [value, key] of [['any', 'durationAny'], ['90', 'duration90'], ['120', 'duration120'], ['150', 'duration150'], ['180', 'duration180']]) durationFilter.querySelector(`option[value="${value}"]`).textContent = translate(key);
+  document.querySelector('#clear-filters').textContent = translate('clearFilters');
+  document.querySelector('#surprise-help').textContent = translate('surpriseHelp');
+  document.querySelector('#surprise-mood-label').textContent = translate('surpriseMoodLabel');
+  document.querySelector('#surprise-duration-label').textContent = translate('surpriseDurationLabel');
+  document.querySelector('#surprise-submit').textContent = translate('surpriseRun');
+  document.querySelector('#surprise-discover').textContent = translate('surpriseDiscover');
+  document.querySelector('#metadata-help').textContent = translate('metadataHelp');
+  document.querySelector('#metadata-movie-label').textContent = translate('metadataMovieLabel');
+  document.querySelector('#metadata-runtime-label').textContent = translate('metadataRuntimeLabel');
+  document.querySelector('#metadata-mood-legend').textContent = translate('metadataMoodLegend');
+  document.querySelector('#metadata-light-label').textContent = translate('moodLight');
+  document.querySelector('#metadata-scary-label').textContent = translate('moodScary');
+  document.querySelector('#metadata-nostalgic-label').textContent = translate('moodNostalgic');
+  document.querySelector('#save-metadata').textContent = translate('saveMetadata');
+  document.querySelector('#metadata-status').textContent = metadataStatusKey ? translate(metadataStatusKey) : '';
+  const selectedSurpriseMood = surpriseMoodSelect.value || 'any';
+  surpriseMoodSelect.replaceChildren();
+  for (const [value, key] of [['any', 'surpriseAnyMood'], ['light', 'moodLight'], ['scary', 'moodScary'], ['nostalgic', 'moodNostalgic']]) {
+    const option = document.createElement('option'); option.value = value; option.textContent = translate(key); surpriseMoodSelect.append(option);
+  }
+  surpriseMoodSelect.value = selectedSurpriseMood;
+  const selectedSurpriseDuration = surpriseDurationSelect.value || 'any';
+  surpriseDurationSelect.replaceChildren();
+  for (const [value, key] of [['any', 'durationAny'], ['90', 'duration90'], ['120', 'duration120'], ['150', 'duration150'], ['180', 'duration180']]) {
+    const option = document.createElement('option'); option.value = value; option.textContent = translate(key); surpriseDurationSelect.append(option);
+  }
+  surpriseDurationSelect.value = selectedSurpriseDuration;
   document.querySelector('#discover-intro').textContent = translate('discoverIntro');
   catalogSearchInput.setAttribute('aria-label', translate('searchLabel'));
   catalogSearchInput.placeholder = translate('searchPlaceholder');
@@ -274,6 +358,7 @@ function renderLanguage() {
     button.setAttribute('aria-pressed', String(collection === selectedCollection));
   });
   document.querySelector('#related-title').textContent = translate('relatedTitle');
+  document.querySelector('#history-title').textContent = translate('wallTitle');
   document.querySelector('#tmdb-notice').textContent = translate('tmdbNotice');
   document.querySelector('#tmdb-logo').alt = translate('tmdbLogoAlt');
   renderHistory();
@@ -290,13 +375,17 @@ function renderLanguage() {
     document.querySelector('#result-description').textContent = translate('spinningDescription');
   }
   if (!spinning) spinButton.innerHTML = spinIcon + `<span>${winningIndex < 0 ? translate('spin') : translate('spinAgain')}</span>`;
-  if (lastResultMovieId) document.querySelector('#result-description').textContent = translate('resultDescription');
+  if (lastResultMovieId) {
+    document.querySelector('#result-label').textContent = translate('resultLabel');
+    document.querySelector('#result-description').textContent = translate('resultDescription');
+    document.querySelector('#hint').textContent = translate('resultHint');
+  }
 }
 function syncTheme() {
   renderLanguage();
   document.body.dataset.theme = activeTheme;
   themeSelect.value = activeTheme;
-  document.querySelector('#wheel-theme-label').textContent = activeTheme === 'christmas' ? 'CHRISTMAS' : 'HALLOWEEN';
+  document.querySelector('#wheel-theme-label').textContent = activeTheme === 'christmas' ? (language === 'pt-PT' ? 'NATAL' : 'CHRISTMAS') : 'HALLOWEEN';
   document.querySelector('.wheel-center svg').style.color = activeTheme === 'christmas' ? '#f4db92' : '#ffa537';
   document.querySelector('.wheel-center svg').innerHTML = activeTheme === 'christmas'
     ? '<path d="M32 5 37 24 53 14 44 31 62 35 44 40 54 57 37 47 32 66 27 47 10 57 20 40 2 35 20 31 11 14 27 24Z" fill="currentColor"/><circle cx="32" cy="35" r="6" fill="#173126"/>'
@@ -337,7 +426,50 @@ document.querySelector('#clear-history').addEventListener('click', () => {
   if (!spinning && confirm(translate('confirmClearHistory'))) { history = {}; themeData.history = history; showAllHistory = false; persistState(); renderHistory(); }
 });
 function movieList() { return playlistRecords().map(movie => movie.title); }
-function eligibleRecords() { return playlistRecords().filter(movie => !avoidViewed || !viewed.includes(movie.id)); }
+function eligibleRecords(overrides = {}) {
+  const selectedMoods = overrides.moods ?? themeData.filters?.moods ?? [];
+  const maxDuration = overrides.maxDuration === undefined ? themeData.filters?.maxDuration ?? null : overrides.maxDuration;
+  return playlistRecords().filter(movie => {
+    if (avoidViewed && viewed.includes(movie.id)) return false;
+    if (selectedMoods.length && !selectedMoods.some(mood => movie.moods.includes(mood))) return false;
+    if (maxDuration !== null && (!Number.isSafeInteger(movie.runtimeMinutes) || movie.runtimeMinutes > maxDuration)) return false;
+    return true;
+  });
+}
+function syncMetadataEditor() {
+  const selectedId = metadataMovieSelect.value;
+  metadataMovieSelect.replaceChildren();
+  for (const movie of playlistRecords()) {
+    const option = document.createElement('option'); option.value = movie.id; option.textContent = movie.title; metadataMovieSelect.append(option);
+  }
+  const chosen = playlistRecords().find(movie => movie.id === selectedId) ?? playlistRecords()[0] ?? null;
+  metadataMovieSelect.value = chosen?.id ?? '';
+  metadataMovieSelect.disabled = !chosen;
+  metadataRuntimeInput.disabled = !chosen;
+  document.querySelector('#save-metadata').disabled = !chosen;
+  for (const input of metadataMoodInputs) input.disabled = !chosen;
+  if (!chosen) { metadataRuntimeInput.value = ''; for (const input of metadataMoodInputs) input.checked = false; return; }
+  metadataRuntimeInput.value = chosen.runtimeMinutes ?? '';
+  metadataMoodInputs.forEach(input => { input.checked = chosen.moods.includes(input.value); });
+}
+function surpriseRecords() {
+  const mood = surpriseMoodSelect.value;
+  const maxDuration = surpriseDurationSelect.value === 'any' ? null : Number(surpriseDurationSelect.value);
+  return eligibleRecords().filter(movie => (!mood || mood === 'any' || movie.moods.includes(mood)) &&
+    (maxDuration === null || (Number.isSafeInteger(movie.runtimeMinutes) && movie.runtimeMinutes <= maxDuration)));
+}
+function updateSurprisePreview() {
+  const matching = surpriseRecords();
+  const selectedMood = surpriseMoodSelect.value;
+  const maxDuration = surpriseDurationSelect.value === 'any' ? null : Number(surpriseDurationSelect.value);
+  const moodCandidates = eligibleRecords().filter(movie => !selectedMood || selectedMood === 'any' || movie.moods.includes(selectedMood));
+  const unknownRuntime = maxDuration === null ? 0 : moodCandidates.filter(movie => !Number.isSafeInteger(movie.runtimeMinutes)).length;
+  const status = matching.length ? translate('surpriseMatches', matching.length) : translate('surpriseNoMatch');
+  document.querySelector('#surprise-status').textContent = [status, ...(unknownRuntime ? [translate('filterStatusUnknown', unknownRuntime)] : [])].join(' ');
+  document.querySelector('#surprise-discover').hidden = matching.length > 0;
+  document.querySelector('#surprise-submit').disabled = matching.length === 0 || spinning;
+  return matching;
+}
 function syncWatchButton() {
   const isShown = Boolean(lastResultMovieId);
   watchButton.hidden = !isShown;
@@ -355,13 +487,30 @@ function renderEligibility(redraw = true) {
   document.querySelector('#eligible-count').textContent = eligible.length;
   document.querySelector('#eligible-label').textContent = translate('eligibleMovies', eligible.length);
   avoidViewedInput.checked = avoidViewed;
-  const exhausted = avoidViewed && total > 0 && eligible.length === 0;
+  const filters = themeData.filters ??= { moods: [], maxDuration: null };
+  filterMoodInputs.forEach(input => { input.checked = filters.moods.includes(input.value); });
+  durationFilter.value = filters.maxDuration === null ? 'any' : String(filters.maxDuration);
+  const filterNotes = [];
+  if (filters.maxDuration !== null) {
+    const missingRuntime = playlistRecords().filter(movie => (!avoidViewed || !viewed.includes(movie.id)) && (!filters.moods.length || filters.moods.some(mood => movie.moods.includes(mood))) && !Number.isSafeInteger(movie.runtimeMinutes)).length;
+    if (missingRuntime) filterNotes.push(translate('filterStatusUnknown', missingRuntime));
+  }
+  if (filters.moods.length) {
+    const missingMood = playlistRecords().filter(movie => !movie.moods.length).length;
+    if (missingMood) filterNotes.push(translate('filterStatusNoMood', missingMood));
+  }
+  document.querySelector('#filter-status').textContent = filterNotes.join(' ');
+  syncMetadataEditor();
+  const exhausted = avoidViewed && total > 0 && playlistRecords().every(movie => viewed.includes(movie.id));
   document.querySelector('#exhausted-actions').hidden = !exhausted;
   const valid = eligible.length > 0 && total <= 60;
   spinButton.disabled = !valid || spinning;
   document.querySelector('#list-status').textContent = total > 60 ? translate('maximum') : total === 0 ? translate('atLeastTwo') : translate('ready');
-  document.querySelector('#hint').textContent = eligible.length ? translate('hint', eligible.length) : exhausted ? translate('exhausted') : translate('chooseRange');
+  document.querySelector('#hint').textContent = eligible.length ? translate('hint', eligible.length) : exhausted ? translate('exhausted') : total > 0 ? translate('noFilterMatches') : translate('chooseRange');
+  if (!eligible.length && !exhausted && total > 0) filterNotes.push(translate('noFilterMatches'));
+  document.querySelector('#filter-status').textContent = filterNotes.join(' ');
   if (redraw) drawWheel(eligible);
+  updateSurprisePreview();
   return eligible;
 }
 function displayTitle(movie) { return String(movie.title ?? '').replace(/\s*\(\d{4}\)\s*$/, ''); }
@@ -573,7 +722,48 @@ function setWatched(movieId, isWatched) {
   syncWatchButton();
 }
 watchButton.addEventListener('click', () => setWatched(lastResultMovieId, !viewed.includes(lastResultMovieId)));
-avoidViewedInput.addEventListener('change', () => { avoidViewed = avoidViewedInput.checked; persistState(); renderEligibility(); });
+function applyFiltersFromControls() {
+  themeData.filters = {
+    moods: filterMoodInputs.filter(input => input.checked).map(input => input.value),
+    maxDuration: durationFilter.value === 'any' ? null : Number(durationFilter.value)
+  };
+  avoidViewed = avoidViewedInput.checked;
+  themeData.avoidViewed = avoidViewed;
+  persistState(); renderEligibility();
+}
+avoidViewedInput.addEventListener('change', applyFiltersFromControls);
+filterMoodInputs.forEach(input => input.addEventListener('change', applyFiltersFromControls));
+durationFilter.addEventListener('change', applyFiltersFromControls);
+document.querySelector('#clear-filters').addEventListener('click', () => {
+  themeData.filters = { moods: [], maxDuration: null };
+  avoidViewed = false; themeData.avoidViewed = false;
+  persistState(); renderEligibility();
+});
+metadataMovieSelect.addEventListener('change', syncMetadataEditor);
+document.querySelector('#save-metadata').addEventListener('click', () => {
+  const id = metadataMovieSelect.value;
+  const movie = playlistRecords().find(item => item.id === id);
+  if (!movie) { metadataStatusKey = 'metadataNoMovies'; document.querySelector('#metadata-status').textContent = translate(metadataStatusKey); return; }
+  const rawRuntime = metadataRuntimeInput.value.trim();
+  const runtime = rawRuntime === '' ? null : Number(rawRuntime);
+  if (runtime !== null && (!Number.isSafeInteger(runtime) || runtime < 1 || runtime > 600)) { metadataStatusKey = 'metadataInvalid'; document.querySelector('#metadata-status').textContent = translate(metadataStatusKey); return; }
+  const moods = metadataMoodInputs.filter(input => input.checked).map(input => input.value);
+  themeData.playlist = playlistRecords().map(item => item.id === id ? createMovie(item.title, item.source, { ...item, runtimeMinutes: runtime, moods }) : item);
+  input.value = playlistRecords().map(item => item.title).join('\n');
+  persistState(); renderEligibility();
+  metadataStatusKey = 'metadataSaved';
+  document.querySelector('#metadata-status').textContent = translate(metadataStatusKey);
+});
+surpriseMoodSelect.addEventListener('change', updateSurprisePreview);
+surpriseDurationSelect.addEventListener('change', updateSurprisePreview);
+document.querySelector('#surprise-submit').addEventListener('click', () => {
+  const matching = updateSurprisePreview();
+  if (matching.length) { document.querySelector('#surprise-status').textContent = translate('surpriseMatches', matching.length); spin(matching); }
+});
+document.querySelector('#surprise-discover').addEventListener('click', () => {
+  const discovery = document.querySelector('#discover-panel'); discovery.open = true;
+  catalogSearchInput.focus();
+});
 document.querySelector('#include-viewed').addEventListener('click', () => { avoidViewed = false; avoidViewedInput.checked = false; persistState(); renderEligibility(); });
 document.querySelector('#reset-viewed').addEventListener('click', () => { viewed = []; persistState(); renderEligibility(); syncWatchButton(); });
 catalogSearchInput.addEventListener('input', () => { catalogRequestController?.abort(); remoteSearchResults = null; catalogStatusOverride = ''; renderCatalog(); });
@@ -652,10 +842,23 @@ function setEditorOpen(open) {
 document.querySelector('#edit-toggle').addEventListener('click', () => setEditorOpen(true));
 document.querySelector('#finish-edit').addEventListener('click', () => setEditorOpen(false));
 setEditorOpen(false);
-function spin() {
-  const movies = eligibleRecords();
+function setAdvancedControlsDisabled(disabled) {
+  avoidViewedInput.disabled = disabled;
+  filterMoodInputs.forEach(input => { input.disabled = disabled; });
+  durationFilter.disabled = disabled;
+  document.querySelector('#clear-filters').disabled = disabled;
+  surpriseMoodSelect.disabled = disabled;
+  surpriseDurationSelect.disabled = disabled;
+  document.querySelector('#surprise-submit').disabled = disabled;
+  metadataMovieSelect.disabled = disabled || playlistRecords().length === 0;
+  metadataRuntimeInput.disabled = disabled || playlistRecords().length === 0;
+  metadataMoodInputs.forEach(input => { input.disabled = disabled || playlistRecords().length === 0; });
+  document.querySelector('#save-metadata').disabled = disabled || playlistRecords().length === 0;
+}
+function spin(selectedPool = eligibleRecords()) {
+  const movies = selectedPool;
   if (spinning || movies.length < 1 || playlistRecords().length > 60) return;
-  spinning = true; spinButton.disabled = true; input.disabled = true; resetButton.disabled = true;
+  spinning = true; spinButton.disabled = true; input.disabled = true; resetButton.disabled = true; setAdvancedControlsDisabled(true);
   document.querySelector('#edit-toggle').disabled = true; document.querySelector('#finish-edit').disabled = true;
   document.querySelector('#clear-history').disabled = true; document.querySelector('#history-toggle').disabled = true; themeSelect.disabled = true;
   winningIndex = -1;
@@ -680,6 +883,7 @@ function spin() {
       rotation %= full; spinning = false; input.disabled = false; resetButton.disabled = false;
       document.querySelector('#edit-toggle').disabled = false; document.querySelector('#finish-edit').disabled = false;
       document.querySelector('#clear-history').disabled = false; document.querySelector('#history-toggle').disabled = false; themeSelect.disabled = false;
+      setAdvancedControlsDisabled(false);
       rollSound.pause(); rollSound.currentTime = 0;
       if (soundEnabled) { endSound.currentTime = 0; endSound.play().catch(() => {}); }
       winningIndex = winner; drawWheel(movies);
@@ -694,6 +898,7 @@ function spin() {
       document.querySelector('#result-title').textContent = selectedMovie.title;
       document.querySelector('#result-description').textContent = translate('resultDescription');
       document.querySelector('#hint').textContent = translate('resultHint');
+      updateSurprisePreview();
       resolve({ movie: selectedMovie.title, id: selectedMovie.id });
     }
     requestAnimationFrame(frame);

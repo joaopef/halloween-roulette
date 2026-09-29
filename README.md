@@ -6,11 +6,17 @@ Roleta de cinema estática para noites de Halloween e Natal. A roda continua a s
 
 A interface está disponível em português de Portugal e inglês. O idioma e o som são preferências globais. Cada tema guarda a sua própria playlist e histórico. Os dados ficam no `localStorage` do navegador e não são sincronizados entre dispositivos.
 
-A migração de `halloween-movies-v1`, `halloween-history-v1`, `halloween-sound-v1` e `cinema-roulette-v2` cria `cinema-roulette-v3`. Os dados antigos não são apagados; ficam como cópias de recuperação. A migração é idempotente: depois de criar v3, não volta a importar os valores anteriores.
+A migração de `halloween-movies-v1`, `halloween-history-v1`, `halloween-sound-v1`, `cinema-roulette-v2` e `cinema-roulette-v3` cria `cinema-roulette-v4`. As chaves anteriores não são apagadas; ficam como cópias de recuperação. A migração é idempotente: depois de criar v4, não volta a importar os valores anteriores.
 
-O esquema v3 guarda `version`, `activeTheme`, `language`, `soundEnabled` e, em `themes`, `playlist`, `history`, `viewed` e `avoidViewed` para cada tema. Cada filme tem um `id` estável, o título original, o ano quando aparece no título, `runtimeMinutes`, `genres`, `moods`, `overview`, `posterUrl`, `tmdbRating`, `tmdbId`, `imdbId` e `source`. Filmes introduzidos manualmente recebem um ID local baseado no título original normalizado; isso não faz correspondência automática com títulos traduzidos nem com o catálogo. O histórico associa o ID ao título e à contagem de sorteios. Marcar ou desmarcar um filme como visto só atualiza `viewed`; não altera o histórico.
+O esquema v4 guarda `version`, `activeTheme`, `language`, `soundEnabled` e, para cada tema, `playlist`, `history`, `viewed`, `avoidViewed` e `filters` (disposições selecionadas e duração máxima). Cada filme tem um `id` estável, o título original, o ano quando aparece no título, `runtimeMinutes`, `genres`, `moods`, `overview`, `posterUrl`, `tmdbRating`, `tmdbId`, `imdbId` e `source`. Filmes introduzidos manualmente recebem um ID local baseado no título original normalizado; isso não faz correspondência automática com títulos traduzidos nem com o catálogo. O histórico associa o ID ao título e à contagem de sorteios. Marcar ou desmarcar um filme como visto só atualiza `viewed`; não altera o histórico.
 
-Ao migrar para v3, os títulos e contagens antigos são mantidos. Os filmes históricos que já não estão na playlist continuam na Wall of Fame. A migração não tenta associar títulos antigos a registos externos.
+Ao migrar para v4, os títulos, IDs e contagens antigos são mantidos. Os filmes históricos que já não estão na playlist continuam na Wall of Fame. Só se acrescentam metadados editoriais quando o título e o ano coincidem exatamente com a curadoria local; não se associam IDs externos.
+
+## Filtros e sessão surpresa
+
+Os filtros afetam apenas a playlist ativa. Com várias disposições selecionadas, basta o filme corresponder a uma delas. “Leve, com ambiente familiar” é uma descrição editorial de tom (por exemplo, comédia, fantasia ou animação de menor intensidade); não garante adequação etária. “Assustador” identifica horror, suspense ou narrativas deliberadamente inquietantes. “Nostálgico” é uma seleção editorial de títulos associados a épocas, séries ou estilos que evocam sessões passadas, e não uma avaliação pessoal do utilizador.
+
+O filtro de duração máxima exclui filmes sem duração conhecida e informa quantos ficam de fora; podes completar a duração em “Metadados dos filmes”, em minutos. Disposições também podem ser editadas manualmente. “Sessão surpresa” aplica a disposição e o tempo escolhidos aos filmes da tua lista, respeitando os filtros e a opção de evitar vistos; não altera a seleção. Cada filme elegível mantém probabilidade igual.
 
 O tema Natal começa com a seleção curada em `movies.js`: 13 comédias, animações e clássicos de diferentes épocas, escolhidos por associação festiva e variedade de estilos. Inclui *The Nightmare Before Christmas*, que também pode pertencer a uma sessão de Halloween. A seleção é um ponto de partida editável, não uma recomendação de adequação etária.
 
