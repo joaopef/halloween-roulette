@@ -6,7 +6,11 @@ Roleta de cinema estática para noites de Halloween e Natal. A roda continua a s
 
 A interface está disponível em português de Portugal e inglês. O idioma e o som são preferências globais. Cada tema guarda a sua própria playlist e histórico. Os dados ficam no `localStorage` do navegador e não são sincronizados entre dispositivos.
 
-A migração de `halloween-movies-v1`, `halloween-history-v1` e `halloween-sound-v1` cria a chave `cinema-roulette-v2`. A chave guarda `version`, `activeTheme`, `language`, `soundEnabled` e, em `themes`, os campos `movies` e `history` de cada tema. Os dados antigos não são apagados; ficam como cópia de recuperação. A migração é idempotente: após a nova chave existir, os valores antigos não são importados uma segunda vez.
+A migração de `halloween-movies-v1`, `halloween-history-v1`, `halloween-sound-v1` e `cinema-roulette-v2` cria `cinema-roulette-v3`. Os dados antigos não são apagados; ficam como cópias de recuperação. A migração é idempotente: depois de criar v3, não volta a importar os valores anteriores.
+
+O esquema v3 guarda `version`, `activeTheme`, `language`, `soundEnabled` e, em `themes`, `playlist`, `history`, `viewed` e `avoidViewed` para cada tema. Cada filme tem um `id` estável, o título original, o ano quando aparece no título, `runtimeMinutes`, `genres`, `moods`, `overview`, `posterUrl`, `tmdbRating`, `tmdbId`, `imdbId` e `source`. Filmes introduzidos manualmente recebem um ID local baseado no título original normalizado; isso não faz correspondência automática com títulos traduzidos nem com o catálogo. O histórico associa o ID ao título e à contagem de sorteios. Marcar ou desmarcar um filme como visto só atualiza `viewed`; não altera o histórico.
+
+Ao migrar para v3, os títulos e contagens antigos são mantidos. Os filmes históricos que já não estão na playlist continuam na Wall of Fame. A migração não tenta associar títulos antigos a registos externos.
 
 O tema Natal começa com a seleção curada em `movies.js`: 13 comédias, animações e clássicos de diferentes épocas, escolhidos por associação festiva e variedade de estilos. Inclui *The Nightmare Before Christmas*, que também pode pertencer a uma sessão de Halloween. A seleção é um ponto de partida editável, não uma recomendação de adequação etária.
 

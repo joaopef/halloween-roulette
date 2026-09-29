@@ -7,13 +7,17 @@ const soundButton = document.querySelector('#sound');
 const editor = document.querySelector('#movie-editor');
 const languageSelect = document.querySelector('#language');
 const themeSelect = document.querySelector('#theme');
+const watchButton = document.querySelector('#watch-toggle');
+const avoidViewedInput = document.querySelector('#avoid-viewed');
 const spinIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg>';
-const STORAGE_KEY = 'cinema-roulette-v2';
+const STORAGE_KEY = 'cinema-roulette-v3';
+const PREVIOUS_STORAGE_KEY = 'cinema-roulette-v2';
 const HISTORY_LIMIT = 5;
 let rotation = 0;
 let spinning = false;
 let winningIndex = -1;
 let showAllHistory = false;
+let lastResultMovieId = null;
 
 const COPY = {
   'pt-PT': {
@@ -24,10 +28,12 @@ const COPY = {
     eyebrow: 'UMA SESSÃO ESCOLHIDA PELO DESTINO', headline1: 'A noite é tua.', headline2: 'O filme é da sorte.', intro: 'Entre bruxas, fantasmas e pesadelos. Roda e descobre o que te espera.',
     wheelCaption: 'A RODA DOS ARREPIOS', wheelOrbit: '✦ &nbsp; QUE A SORTE TE ASSOMBRE &nbsp; ✦', spin: 'Rodar a roleta', spinAgain: 'Rodar outra vez', spinning: 'A escolher…',
     collectionEyebrow: 'A TUA SESSÃO DE CINEMA', collectionTitle: 'Filmes na roleta', collectionSummary: 'possibilidades para esta noite. A tua coleção, pronta a entrar em cena.', editMovies: 'Editar filmes', editorHelp: 'Um filme por linha. Troca, acrescenta ou elimina títulos.', moviesLabel: 'Filmes a incluir na roleta, um por linha', reset: 'Repor a seleção inicial', finishEdit: 'Concluir edição',
+    eligibleMovies: count => `${count} ${count === 1 ? 'filme elegível' : 'filmes elegíveis'}`, avoidViewed: 'Evitar filmes já vistos', exhausted: 'Todos os filmes da lista estão marcados como vistos. Podes incluir os vistos ou reiniciar a lista de vistos deste tema.', includeViewed: 'Incluir filmes vistos', resetViewed: 'Reiniciar lista de vistos',
+    markViewed: 'Marcar como visto', undoViewed: 'Desmarcar como visto', viewed: 'Visto',
     historyEyebrow: 'AS SESSÕES PASSADAS', clearHistory: 'Limpar histórico', historyNote: 'Os sorteios ficam guardados apenas neste navegador.',
     historyStats: (movies, draws) => `${movies} ${movies === 1 ? 'filme diferente' : 'filmes diferentes'} · ${draws} ${draws === 1 ? 'sorteio' : 'sorteios'}`,
     historyCount: count => `${count} ${count === 1 ? 'vez' : 'vezes'}`, emptyHistory: 'O teu primeiro filme vai entrar para a história.', more: 'Mostrar mais', less: 'Mostrar menos',
-    ready: 'Lista pronta para rodar', maximum: 'Máximo de 60 filmes', atLeastTwo: 'Adiciona pelo menos 2 filmes', chooseRange: 'Escolhe entre 2 e 60 filmes para começar.', hint: count => `${count} filmes. Uma escolha. Tens coragem?`,
+    ready: 'Lista pronta para rodar', maximum: 'Máximo de 60 filmes', atLeastTwo: 'Adiciona pelo menos 1 filme', chooseRange: 'Adiciona até 60 filmes para começar.', hint: count => `${count} filmes elegíveis. Uma escolha. Tens coragem?`,
     resultIdleLabel: 'O DESTINO ESTÁ À ESPERA', resultIdleTitle: 'O próximo filme é uma surpresa.', resultIdleDescription: 'Roda a roleta para descobrir.',
     spinningLabel: 'A RODAR…', spinningTitle: 'Não espreites. Está quase.', spinningDescription: 'Todos os filmes têm a mesma probabilidade.', resultLabel: 'O FILME DESTA NOITE', resultDescription: 'Apaga as luzes e carrega no play. Boa sessão!', resultHint: 'O destino escolheu. Agora só faltam as pipocas.',
     confirmClearHistory: 'Queres limpar o histórico deste tema neste navegador?', soundOn: 'Desativar som', soundOff: 'Ativar som', playArea: 'Roleta de filmes', canvasLabel: 'Roleta com os filmes da lista', languageLabel: 'Idioma da interface', themeLabel: 'Tema da roleta',
@@ -40,6 +46,8 @@ const COPY = {
     eyebrow: 'A MOVIE NIGHT CHOSEN BY FATE', headline1: 'Your night.', headline2: 'The film is up to fate.', intro: 'Among witches, ghosts and nightmares. Spin to see what awaits.',
     wheelCaption: 'THE SHIVER SPINNER', wheelOrbit: '✦ &nbsp; LET FATE HAUNT YOU &nbsp; ✦', spin: 'Spin the wheel', spinAgain: 'Spin again', spinning: 'Choosing…',
     collectionEyebrow: 'YOUR MOVIE NIGHT', collectionTitle: 'Movies on the wheel', collectionSummary: 'possibilities for tonight. Your collection is ready for its close-up.', editMovies: 'Edit movies', editorHelp: 'One movie per line. Add, replace or remove titles.', moviesLabel: 'Movies on the wheel, one per line', reset: 'Restore starter selection', finishEdit: 'Done editing',
+    eligibleMovies: count => `${count} ${count === 1 ? 'eligible movie' : 'eligible movies'}`, avoidViewed: 'Avoid movies already watched', exhausted: 'Every movie in this collection is marked as watched. Include watched movies or reset this theme’s watched list.', includeViewed: 'Include watched movies', resetViewed: 'Reset watched list',
+    markViewed: 'Mark as watched', undoViewed: 'Undo watched status', viewed: 'Watched',
     historyEyebrow: 'PAST MOVIE NIGHTS', clearHistory: 'Clear history', historyNote: 'Draws are stored only in this browser.',
     historyStats: (movies, draws) => `${movies} unique ${movies === 1 ? 'movie' : 'movies'} · ${draws} ${draws === 1 ? 'draw' : 'draws'}`,
     historyCount: count => `${count} ${count === 1 ? 'time' : 'times'}`, emptyHistory: 'Your first movie is waiting to make history.', more: 'Show more', less: 'Show less',
@@ -55,53 +63,137 @@ function parseStored(key, fallback) {
   try { const raw = localStorage.getItem(key); return raw === null ? fallback : JSON.parse(raw); } catch { return fallback; }
 }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; } }
-function validHistory(value) {
-  return Object.fromEntries(Object.entries(value && typeof value === 'object' ? value : {})
-    .filter(([name, count]) => typeof name === 'string' && name.trim() && Number.isSafeInteger(count) && count > 0));
+function normalizeTitle(title) { return String(title ?? '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US'); }
+function manualId(title) { return `manual:${normalizeTitle(title)}`; }
+function createMovie(title, source = 'manual', extra = {}) {
+  const cleanTitle = String(title ?? '').trim();
+  const parsedYear = cleanTitle.match(/\((\d{4})\)\s*$/)?.[1];
+  const year = Number.isSafeInteger(extra.year) ? extra.year : parsedYear ? Number(parsedYear) : null;
+  return {
+    id: typeof extra.id === 'string' && extra.id ? extra.id : manualId(cleanTitle),
+    title: cleanTitle, year,
+    runtimeMinutes: Number.isSafeInteger(extra.runtimeMinutes) && extra.runtimeMinutes > 0 ? extra.runtimeMinutes : null,
+    genres: Array.isArray(extra.genres) ? extra.genres.filter(value => typeof value === 'string') : [],
+    moods: Array.isArray(extra.moods) ? extra.moods.filter(value => typeof value === 'string') : [],
+    overview: extra.overview && typeof extra.overview === 'object' ? extra.overview : null,
+    posterUrl: typeof extra.posterUrl === 'string' ? extra.posterUrl : null,
+    tmdbRating: Number.isFinite(extra.tmdbRating) ? extra.tmdbRating : null,
+    tmdbId: Number.isSafeInteger(extra.tmdbId) ? extra.tmdbId : null,
+    imdbId: typeof extra.imdbId === 'string' ? extra.imdbId : null,
+    source: typeof extra.source === 'string' ? extra.source : source
+  };
 }
-function newThemeState(movies, history) { return { movies, history: validHistory(history) }; }
-function readLegacyTheme() {
-  const savedMovies = parseStored('halloween-movies-v1', DEFAULT_MOVIES.join('\n'));
-  const savedHistory = parseStored('halloween-history-v1', LEGACY_HISTORY);
-  return newThemeState(typeof savedMovies === 'string' ? savedMovies : DEFAULT_MOVIES.join('\n'), savedHistory);
+function parseMovieLines(value) {
+  const seen = new Set();
+  return String(value ?? '').split('\n').map(line => line.trim()).filter(title => {
+    const key = normalizeTitle(title);
+    if (!key || seen.has(key)) return false;
+    seen.add(key); return true;
+  }).map(title => createMovie(title));
+}
+function sanitizePlaylist(value, fallback) {
+  if (!Array.isArray(value)) return parseMovieLines(fallback);
+  const seen = new Set();
+  return value.filter(movie => movie && typeof movie.title === 'string' && movie.title.trim()).map(movie => createMovie(movie.title, 'manual', movie)).filter(movie => {
+    if (!movie.id || seen.has(movie.id)) return false;
+    seen.add(movie.id); return true;
+  });
+}
+function sanitizeHistory(value, playlist) {
+  const records = {};
+  const byTitle = new Map(playlist.map(movie => [normalizeTitle(movie.title), movie]));
+  for (const [key, entry] of Object.entries(value && typeof value === 'object' ? value : {})) {
+    const isLegacyCount = Number.isSafeInteger(entry) && entry > 0;
+    const title = isLegacyCount ? key : entry && typeof entry.title === 'string' ? entry.title : '';
+    const count = isLegacyCount ? entry : entry && Number.isSafeInteger(entry.count) ? entry.count : 0;
+    if (!title.trim() || count < 1) continue;
+    const movie = byTitle.get(normalizeTitle(title)) ?? createMovie(title);
+    const id = !isLegacyCount && typeof entry.id === 'string' ? entry.id : movie.id;
+    records[id] = { id, title, count };
+  }
+  return records;
+}
+function makeThemeState(playlistInput, historyInput, flags = {}) {
+  const playlist = Array.isArray(playlistInput) ? sanitizePlaylist(playlistInput, '') : parseMovieLines(playlistInput);
+  const history = sanitizeHistory(historyInput, playlist);
+  const viewed = Array.isArray(flags.viewed) ? [...new Set(flags.viewed.filter(id => typeof id === 'string'))] : [];
+  return { playlist, history, viewed, avoidViewed: flags.avoidViewed === true };
+}
+function migrateOldTheme(inputTheme, fallbackMovies, fallbackHistory) {
+  const movies = typeof inputTheme?.movies === 'string' ? inputTheme.movies : Array.isArray(inputTheme?.playlist) ? inputTheme.playlist : fallbackMovies;
+  const history = inputTheme?.history ?? fallbackHistory;
+  return makeThemeState(movies, history, inputTheme ?? {});
 }
 function initialState() {
   const existing = parseStored(STORAGE_KEY, null);
-  if (existing && existing.version === 2 && existing.themes?.halloween && existing.themes?.christmas) {
+  if (existing && existing.version === 3 && existing.themes?.halloween && existing.themes?.christmas) {
     return {
-      version: 2,
+      version: 3,
       activeTheme: existing.activeTheme === 'christmas' ? 'christmas' : 'halloween',
-      language: existing.language === 'en' ? 'en' : existing.language === 'pt-PT' ? 'pt-PT' : (parseStored('cinema-language-v1', 'pt-PT') === 'en' ? 'en' : 'pt-PT'),
-      soundEnabled: typeof existing.soundEnabled === 'boolean' ? existing.soundEnabled : parseStored('halloween-sound-v1', true) === true,
+      language: existing.language === 'en' ? 'en' : 'pt-PT',
+      soundEnabled: existing.soundEnabled !== false,
       themes: {
-        halloween: newThemeState(typeof existing.themes.halloween.movies === 'string' ? existing.themes.halloween.movies : DEFAULT_MOVIES.join('\n'), existing.themes.halloween.history),
-        christmas: newThemeState(typeof existing.themes.christmas.movies === 'string' ? existing.themes.christmas.movies : CHRISTMAS_MOVIES.join('\n'), existing.themes.christmas.history)
+        halloween: makeThemeState(existing.themes.halloween.playlist, existing.themes.halloween.history, existing.themes.halloween),
+        christmas: makeThemeState(existing.themes.christmas.playlist, existing.themes.christmas.history, existing.themes.christmas)
       }
     };
   }
-  // Migrate the original Halloween keys once. Legacy values are left untouched
-  // as a recoverable backup until this new state has been written successfully.
+  const previous = parseStored(PREVIOUS_STORAGE_KEY, null);
+  if (previous && previous.version === 2 && previous.themes?.halloween && previous.themes?.christmas) {
+    return {
+      version: 3,
+      activeTheme: previous.activeTheme === 'christmas' ? 'christmas' : 'halloween',
+      language: previous.language === 'en' ? 'en' : 'pt-PT',
+      soundEnabled: typeof previous.soundEnabled === 'boolean' ? previous.soundEnabled : parseStored('halloween-sound-v1', true) === true,
+      themes: {
+        halloween: migrateOldTheme(previous.themes.halloween, DEFAULT_MOVIES.join('\n'), LEGACY_HISTORY),
+        christmas: migrateOldTheme(previous.themes.christmas, CHRISTMAS_MOVIES.join('\n'), {})
+      }
+    };
+  }
+  // Import the original v1 values once, keeping the source keys as recovery copies.
+  const savedMovies = parseStored('halloween-movies-v1', DEFAULT_MOVIES.join('\n'));
+  const savedHistory = parseStored('halloween-history-v1', LEGACY_HISTORY);
   return {
-    version: 2,
+    version: 3,
     activeTheme: parseStored('cinema-theme-v1', 'halloween') === 'christmas' ? 'christmas' : 'halloween',
     language: parseStored('cinema-language-v1', 'pt-PT') === 'en' ? 'en' : 'pt-PT',
     soundEnabled: parseStored('halloween-sound-v1', true) === true,
-    themes: { halloween: readLegacyTheme(), christmas: newThemeState(CHRISTMAS_MOVIES.join('\n'), {}) }
+    themes: {
+      halloween: makeThemeState(typeof savedMovies === 'string' ? savedMovies : DEFAULT_MOVIES.join('\n'), savedHistory),
+      christmas: makeThemeState(CHRISTMAS_MOVIES.join('\n'), {})
+    }
   };
 }
 const state = initialState();
 let activeTheme = state.activeTheme;
 let language = state.language;
 let soundEnabled = state.soundEnabled;
-let history = state.themes[activeTheme].history;
-input.value = state.themes[activeTheme].movies;
+let themeData = state.themes[activeTheme];
+let history = themeData.history;
+let viewed = themeData.viewed;
+let avoidViewed = themeData.avoidViewed;
+input.value = themeData.playlist.map(movie => movie.title).join('\n');
 
+function playlistRecords() { return themeData.playlist; }
+function reconcilePlaylist(value) {
+  const previous = playlistRecords();
+  const byTitle = new Map(previous.map(movie => [normalizeTitle(movie.title), movie]));
+  const byId = new Map(previous.map(movie => [movie.id, movie]));
+  return parseMovieLines(value).map(parsed => {
+    const existingMovie = byTitle.get(normalizeTitle(parsed.title)) ?? byId.get(parsed.id);
+    return existingMovie ? createMovie(existingMovie.title, existingMovie.source, existingMovie) : parsed;
+  });
+}
 function persistState() {
-  state.version = 2;
+  state.version = 3;
   state.activeTheme = activeTheme;
   state.language = language;
   state.soundEnabled = soundEnabled;
-  state.themes[activeTheme] = newThemeState(input.value, history);
+  themeData.playlist = reconcilePlaylist(input.value);
+  themeData.history = history;
+  themeData.viewed = viewed;
+  themeData.avoidViewed = avoidViewed;
   return save(STORAGE_KEY, state);
 }
 function translate(key, ...args) {
@@ -139,7 +231,14 @@ function renderLanguage() {
     ? (language === 'pt-PT' ? '✦ &nbsp; QUE A MAGIA ESCOLHA &nbsp; ✦' : '✦ &nbsp; LET THE MAGIC CHOOSE &nbsp; ✦')
     : translate('wheelOrbit');
   syncSoundButton();
+  document.querySelector('#eligible-label').textContent = translate('eligibleMovies', Number(document.querySelector('#eligible-count').textContent) || 0);
+  document.querySelector('#avoid-viewed-label').textContent = translate('avoidViewed');
+  document.querySelector('#exhausted-message').textContent = translate('exhausted');
+  document.querySelector('#include-viewed').textContent = translate('includeViewed');
+  document.querySelector('#reset-viewed').textContent = translate('resetViewed');
   renderHistory();
+  syncWatchButton();
+  renderEligibility(false);
   if (!spinning && winningIndex < 0) {
     document.querySelector('#result-label').textContent = translate('resultIdleLabel');
     document.querySelector('#result-title').textContent = translate('resultIdleTitle');
@@ -150,6 +249,7 @@ function renderLanguage() {
     document.querySelector('#result-description').textContent = translate('spinningDescription');
   }
   if (!spinning) spinButton.innerHTML = spinIcon + `<span>${winningIndex < 0 ? translate('spin') : translate('spinAgain')}</span>`;
+  if (lastResultMovieId) document.querySelector('#result-description').textContent = translate('resultDescription');
 }
 function syncTheme() {
   renderLanguage();
@@ -178,13 +278,13 @@ function setSound(enabled) {
 }
 function renderHistory() {
   const list = document.querySelector('#history'); list.replaceChildren();
-  const entries = Object.entries(history).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const entries = Object.values(history).sort((a, b) => b.count - a.count || a.title.localeCompare(b.title));
   const shown = showAllHistory ? entries : entries.slice(0, HISTORY_LIMIT);
-  for (const [title, count] of shown) {
+  for (const entry of shown) {
     const row = document.createElement('li'); const name = document.createElement('span'); const badge = document.createElement('b');
-    name.textContent = title; badge.textContent = translate('historyCount', count); row.append(name, badge); list.append(row);
+    name.textContent = entry.title; badge.textContent = translate('historyCount', entry.count); row.append(name, badge); list.append(row);
   }
-  const total = entries.reduce((sum, [, count]) => sum + count, 0);
+  const total = entries.reduce((sum, entry) => sum + entry.count, 0);
   document.querySelector('#history-stats').textContent = translate('historyStats', entries.length, total);
   if (!entries.length) { const empty = document.createElement('li'); empty.textContent = translate('emptyHistory'); list.append(empty); }
   const toggle = document.querySelector('#history-toggle');
@@ -193,9 +293,47 @@ function renderHistory() {
 }
 document.querySelector('#history-toggle').addEventListener('click', () => { showAllHistory = !showAllHistory; renderHistory(); });
 document.querySelector('#clear-history').addEventListener('click', () => {
-  if (!spinning && confirm(translate('confirmClearHistory'))) { history = {}; state.themes[activeTheme].history = history; showAllHistory = false; persistState(); renderHistory(); }
+  if (!spinning && confirm(translate('confirmClearHistory'))) { history = {}; themeData.history = history; showAllHistory = false; persistState(); renderHistory(); }
 });
-function movieList() { return [...new Set(input.value.split('\n').map(s => s.trim()).filter(Boolean))]; }
+function movieList() { return playlistRecords().map(movie => movie.title); }
+function eligibleRecords() { return playlistRecords().filter(movie => !avoidViewed || !viewed.includes(movie.id)); }
+function syncWatchButton() {
+  const isShown = Boolean(lastResultMovieId);
+  watchButton.hidden = !isShown;
+  if (!isShown) return;
+  const isViewed = viewed.includes(lastResultMovieId);
+  watchButton.textContent = translate(isViewed ? 'undoViewed' : 'markViewed');
+  watchButton.setAttribute('aria-pressed', String(isViewed));
+}
+function renderEligibility(redraw = true) {
+  const total = playlistRecords().length;
+  const eligible = eligibleRecords();
+  if (!spinning && lastResultMovieId) winningIndex = eligible.findIndex(movie => movie.id === lastResultMovieId);
+  document.querySelector('#count').textContent = total;
+  document.querySelector('#movie-summary-count').textContent = total;
+  document.querySelector('#eligible-count').textContent = eligible.length;
+  document.querySelector('#eligible-label').textContent = translate('eligibleMovies', eligible.length);
+  avoidViewedInput.checked = avoidViewed;
+  const exhausted = avoidViewed && total > 0 && eligible.length === 0;
+  document.querySelector('#exhausted-actions').hidden = !exhausted;
+  const valid = eligible.length > 0 && total <= 60;
+  spinButton.disabled = !valid || spinning;
+  document.querySelector('#list-status').textContent = total > 60 ? translate('maximum') : total === 0 ? translate('atLeastTwo') : translate('ready');
+  document.querySelector('#hint').textContent = eligible.length ? translate('hint', eligible.length) : exhausted ? translate('exhausted') : translate('chooseRange');
+  if (redraw) drawWheel(eligible);
+  return eligible;
+}
+function setWatched(movieId, isWatched) {
+  if (!movieId) return;
+  viewed = isWatched ? [...new Set([...viewed, movieId])] : viewed.filter(id => id !== movieId);
+  persistState();
+  renderEligibility();
+  syncWatchButton();
+}
+watchButton.addEventListener('click', () => setWatched(lastResultMovieId, !viewed.includes(lastResultMovieId)));
+avoidViewedInput.addEventListener('change', () => { avoidViewed = avoidViewedInput.checked; persistState(); renderEligibility(); });
+document.querySelector('#include-viewed').addEventListener('click', () => { avoidViewed = false; avoidViewedInput.checked = false; persistState(); renderEligibility(); });
+document.querySelector('#reset-viewed').addEventListener('click', () => { viewed = []; persistState(); renderEligibility(); syncWatchButton(); });
 function randomIndex(length) {
   const range = 4294967296;
   const limit = range - (range % length);
@@ -203,8 +341,8 @@ function randomIndex(length) {
   do { crypto.getRandomValues(value); } while (value[0] >= limit);
   return value[0] % length;
 }
-function drawWheel(movies = movieList()) {
-  const items = movies.length ? movies : [language === 'pt-PT' ? 'Adiciona filmes' : 'Add movies'];
+function drawWheel(movies = eligibleRecords()) {
+  const items = movies.length ? movies.map(movie => typeof movie === 'string' ? movie : movie.title) : [language === 'pt-PT' ? 'Adiciona filmes' : 'Add movies'];
   const step = Math.PI * 2 / items.length;
   const halloween = activeTheme === 'halloween';
   ctx.clearRect(0, 0, 1000, 1000);
@@ -243,21 +381,17 @@ function drawWheel(movies = movieList()) {
   ctx.restore();
 }
 function updateList() {
-  state.themes[activeTheme].movies = input.value;
-  persistState();
-  const movies = movieList();
-  document.querySelector('#count').textContent = movies.length;
-  document.querySelector('#movie-summary-count').textContent = movies.length;
-  const valid = movies.length >= 2 && movies.length <= 60;
-  spinButton.disabled = !valid || spinning;
-  document.querySelector('#list-status').textContent = movies.length > 60 ? translate('maximum') : movies.length < 2 ? translate('atLeastTwo') : translate('ready');
-  document.querySelector('#hint').textContent = valid ? translate('hint', movies.length) : translate('chooseRange');
+  themeData.playlist = reconcilePlaylist(input.value);
+  input.value = themeData.playlist.map(movie => movie.title).join('\n');
+  lastResultMovieId = null;
   winningIndex = -1;
-  const result = document.querySelector('#result'); result.classList.remove('winner', 'reveal');
+  document.querySelector('#result').classList.remove('winner', 'reveal');
   document.querySelector('#result-label').textContent = translate('resultIdleLabel');
   document.querySelector('#result-title').textContent = translate('resultIdleTitle');
   document.querySelector('#result-description').textContent = translate('resultIdleDescription');
-  drawWheel(movies);
+  syncWatchButton();
+  persistState();
+  renderEligibility();
 }
 function setEditorOpen(open) {
   editor.hidden = !open;
@@ -269,8 +403,8 @@ document.querySelector('#edit-toggle').addEventListener('click', () => setEditor
 document.querySelector('#finish-edit').addEventListener('click', () => setEditorOpen(false));
 setEditorOpen(false);
 function spin() {
-  const movies = movieList();
-  if (spinning || movies.length < 2 || movies.length > 60) return;
+  const movies = eligibleRecords();
+  if (spinning || movies.length < 1 || playlistRecords().length > 60) return;
   spinning = true; spinButton.disabled = true; input.disabled = true; resetButton.disabled = true;
   document.querySelector('#edit-toggle').disabled = true; document.querySelector('#finish-edit').disabled = true;
   document.querySelector('#clear-history').disabled = true; document.querySelector('#history-toggle').disabled = true; themeSelect.disabled = true;
@@ -299,14 +433,18 @@ function spin() {
       rollSound.pause(); rollSound.currentTime = 0;
       if (soundEnabled) { endSound.currentTime = 0; endSound.play().catch(() => {}); }
       winningIndex = winner; drawWheel(movies);
-      history[movies[winner]] = (history[movies[winner]] || 0) + 1; persistState(); renderHistory();
+      const selectedMovie = movies[winner];
+      const priorCount = history[selectedMovie.id]?.count ?? 0;
+      history[selectedMovie.id] = { id: selectedMovie.id, title: selectedMovie.title, count: priorCount + 1 };
+      lastResultMovieId = selectedMovie.id;
+      persistState(); renderHistory(); syncWatchButton();
       spinButton.innerHTML = spinIcon + `<span>${translate('spinAgain')}</span>`; spinButton.disabled = false;
       const result = document.querySelector('#result'); result.classList.add('winner', 'reveal');
       document.querySelector('#result-label').textContent = translate('resultLabel');
-      document.querySelector('#result-title').textContent = movies[winner];
+      document.querySelector('#result-title').textContent = selectedMovie.title;
       document.querySelector('#result-description').textContent = translate('resultDescription');
       document.querySelector('#hint').textContent = translate('resultHint');
-      resolve({ movie: movies[winner] });
+      resolve({ movie: selectedMovie.title, id: selectedMovie.id });
     }
     requestAnimationFrame(frame);
   });
@@ -320,11 +458,18 @@ languageSelect.addEventListener('change', () => { language = languageSelect.valu
 themeSelect.value = activeTheme;
 themeSelect.addEventListener('change', () => {
   if (spinning) return;
-  state.themes[activeTheme] = newThemeState(input.value, history);
+  themeData.playlist = reconcilePlaylist(input.value);
+  themeData.history = history;
+  themeData.viewed = viewed;
+  themeData.avoidViewed = avoidViewed;
   activeTheme = themeSelect.value === 'christmas' ? 'christmas' : 'halloween';
   state.activeTheme = activeTheme;
-  history = state.themes[activeTheme].history;
-  input.value = state.themes[activeTheme].movies;
+  themeData = state.themes[activeTheme];
+  history = themeData.history;
+  viewed = themeData.viewed;
+  avoidViewed = themeData.avoidViewed;
+  input.value = themeData.playlist.map(movie => movie.title).join('\n');
+  lastResultMovieId = null;
   winningIndex = -1;
   showAllHistory = false;
   document.querySelector('#result').classList.remove('winner', 'reveal');
