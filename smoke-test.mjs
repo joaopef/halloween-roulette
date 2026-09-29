@@ -1,0 +1,30 @@
+import { readFile } from 'node:fs/promises';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import { webcrypto } from 'node:crypto';
+const nodes = new Map();
+function node(selector) {
+  if (!nodes.has(selector)) nodes.set(selector, { value: '', textContent: '', innerHTML: '', disabled: false, checked: true, children: [], classList: { add() {}, remove() {} }, addEventListener() {}, replaceChildren() { this.children = []; }, append(...items) { this.children.push(...items); } });
+  return nodes.get(selector);
+}
+const context = { clearRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {}, moveTo() {}, arc() {}, closePath() {}, fill() {}, stroke() {}, fillText() {}, measureText: text => ({ width: text.length * 14 }) };
+node('#wheel').getContext = () => context;
+const storage = new Map();
+const sandbox = vm.createContext({ document: { querySelector: node, createElement: () => ({ textContent: '', append() {} }) }, localStorage: { getItem: k => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v) }, Audio: class { play() { return Promise.resolve(); } pause() {} }, crypto: webcrypto, matchMedia: () => ({ matches: true }), performance: { now: () => 0 }, requestAnimationFrame: fn => fn(5000), confirm: () => false });
+vm.runInContext(await readFile('movies.js', 'utf8'), sandbox);
+vm.runInContext(await readFile('app.js', 'utf8'), sandbox);
+assert.equal(node('#count').textContent, 19);
+assert.equal(node('#history-stats').textContent, '17 filmes diferentes · 24 sorteios');
+node('#movies').value = 'Only one\nOnly one\n'; vm.runInContext('updateList()', sandbox); assert.equal(node('#count').textContent, 1); assert.equal(node('#spin').disabled, true);
+assert.equal(vm.runInContext('spin()', sandbox), undefined);
+node('#movies').value = 'A\nB'; vm.runInContext('updateList()', sandbox);
+const result = await vm.runInContext('spin()', sandbox);
+assert.ok(['A', 'B'].includes(result.movie)); assert.equal(node('#result-title').textContent, result.movie); assert.equal(node('#spin').disabled, false); assert.equal(node('#movies').disabled, false);
+const selectedByPointer = vm.runInContext('Math.floor(((Math.PI * 2 - rotation) % (Math.PI * 2)) / (Math.PI * 2 / movieList().length))', sandbox);
+assert.equal(['A', 'B'][selectedByPointer], result.movie);
+assert.equal(JSON.parse(storage.get('halloween-history-v1'))[result.movie], 1);
+node('#movies').value = Array.from({length:61}, (_,i) => `Film ${i}`).join('\n'); vm.runInContext('updateList()', sandbox); assert.equal(node('#spin').disabled, true);
+node('#movies').value = Array.from({length:60}, (_,i) => `Film ${i}`).join('\n'); vm.runInContext('updateList()', sandbox); assert.equal(node('#spin').disabled, false);
+await vm.runInContext('spin()', sandbox);
+assert.equal(node('#result-title').textContent, vm.runInContext('movieList()[Math.floor(((Math.PI * 2 - rotation) % (Math.PI * 2)) / (Math.PI * 2 / movieList().length))]', sandbox));
+console.log('Passed: imported collection/history, duplicates, bounds, selected film/pointer alignment, saved history, controls restored.');

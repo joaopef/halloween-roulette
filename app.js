@@ -3,7 +3,7 @@ const ctx = canvas.getContext('2d');
 const input = document.querySelector('#movies');
 const spinButton = document.querySelector('#spin');
 const resetButton = document.querySelector('#reset');
-const palette = ['#af5132', '#56376a', '#865339', '#382a4e', '#a74438', '#6c4975'];
+const palette = ['#ed771c', '#191512', '#bd4c0d', '#292019', '#fa912e', '#0e0d0c'];
 let rotation = 0;
 let spinning = false;
 function loadSaved(key, fallback) {
@@ -52,7 +52,7 @@ function drawWheel(movies = movieList()) {
     const angle = -Math.PI / 2 + index * step;
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 495, angle, angle + step); ctx.closePath();
     ctx.fillStyle = palette[index % palette.length]; ctx.fill();
-    ctx.strokeStyle = '#211723'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.strokeStyle = '#080706'; ctx.lineWidth = 3; ctx.stroke();
     ctx.save(); ctx.rotate(angle + step / 2); ctx.textAlign = 'right';
     ctx.fillStyle = '#fff0df';
     const size = Math.max(12, Math.min(27, 400 / items.length));
