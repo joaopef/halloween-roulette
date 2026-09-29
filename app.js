@@ -5,7 +5,7 @@ const spinButton = document.querySelector('#spin');
 const resetButton = document.querySelector('#reset');
 const soundButton = document.querySelector('#sound');
 const editor = document.querySelector('#movie-editor');
-const palette = ['#ed771c', '#191512', '#bd4c0d', '#292019', '#fa912e', '#0e0d0c'];
+const spinIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg>';
 let rotation = 0;
 let spinning = false;
 let winningIndex = -1;
@@ -69,19 +69,28 @@ function drawWheel(movies = movieList()) {
   items.forEach((movie, index) => {
     const angle = -Math.PI / 2 + index * step;
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 495, angle, angle + step); ctx.closePath();
-    ctx.fillStyle = palette[index % palette.length]; ctx.fill();
-    ctx.strokeStyle = index === winningIndex && !spinning ? '#fff1bf' : '#080706'; ctx.lineWidth = index === winningIndex && !spinning ? 12 : 3; ctx.stroke();
+    const bright = index % 2 === 0;
+    const gradient = ctx.createRadialGradient(0, 0, 75, 0, 0, 495);
+    gradient.addColorStop(0, bright ? '#87300b' : '#080a09');
+    gradient.addColorStop(0.48, bright ? '#dd6514' : '#151b18');
+    gradient.addColorStop(1, bright ? '#f59b3c' : '#26312a');
+    ctx.fillStyle = gradient; ctx.fill();
+    ctx.strokeStyle = index === winningIndex && !spinning ? '#fff2ba' : '#a4743660'; ctx.lineWidth = index === winningIndex && !spinning ? 10 : 2; ctx.stroke();
     ctx.save(); ctx.rotate(angle + step / 2); ctx.textAlign = 'right';
-    ctx.fillStyle = '#fff0df';
-    const size = Math.max(12, Math.min(27, 400 / items.length));
-    ctx.font = `500 ${size}px "DM Sans", sans-serif`;
-    let label = movie;
-    const maxWidth = items.length > 35 ? 185 : 290;
+    ctx.fillStyle = bright ? '#241204' : '#f9e6c7';
+    const size = Math.max(13, Math.min(28, 470 / items.length));
+    ctx.font = `700 ${size}px "DM Sans", sans-serif`;
+    const year = movie.match(/\((\d{4})\)\s*$/)?.[1];
+    let label = movie.replace(/\s*\(\d{4}\)\s*$/, '');
+    const fullLabel = label;
+    const maxWidth = items.length > 35 ? 210 : 305;
     while (ctx.measureText(label).width > maxWidth && label.length > 1) label = label.slice(0, -1);
-    if (label !== movie) label = label.slice(0, -1) + '…';
-    if (items.length <= 60) ctx.fillText(label, 455, size / 3);
+    if (label !== fullLabel) label = label.slice(0, -1) + '…';
+    if (items.length <= 60) ctx.fillText(label, 453, year && items.length < 28 ? -3 : size / 3);
+    if (year && items.length < 28) { ctx.font = '500 16px "Space Grotesk", sans-serif'; ctx.globalAlpha = .75; ctx.fillText(year, 450, 20); }
     ctx.restore();
   });
+  for (const radius of [480, 150]) { ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.strokeStyle = '#ffc27a80'; ctx.lineWidth = radius === 480 ? 3 : 2; ctx.stroke(); }
   ctx.restore();
 }
 function updateList() {
@@ -117,7 +126,7 @@ function spin() {
   document.querySelector('#clear-history').disabled = true; document.querySelector('#history-toggle').disabled = true;
   winningIndex = -1;
   if (soundEnabled) { rollSound.currentTime = 0; rollSound.play().catch(() => {}); }
-  spinButton.innerHTML = '<span aria-hidden="true">↻</span> O destino está a escolher…';
+  spinButton.innerHTML = spinIcon + '<span>A escolher…</span>';
   document.querySelector('#result-label').textContent = 'A RODAR…';
   document.querySelector('#result-title').textContent = 'Não espreites. Está quase.';
   document.querySelector('#result-description').textContent = 'Todos os filmes têm a mesma probabilidade.';
@@ -141,7 +150,7 @@ function spin() {
       if (soundEnabled) { endSound.currentTime = 0; endSound.play().catch(() => {}); }
       winningIndex = winner; drawWheel(movies);
       history[movies[winner]] = (history[movies[winner]] || 0) + 1; save('halloween-history-v1', history); renderHistory();
-      spinButton.innerHTML = '<span aria-hidden="true">↻</span> Rodar outra vez <span class="arrow" aria-hidden="true">↗</span>';
+      spinButton.innerHTML = spinIcon + '<span>Rodar outra vez</span>';
       const result = document.querySelector('#result'); result.classList.add('winner', 'reveal');
       document.querySelector('#result-label').textContent = 'O FILME DESTA NOITE';
       document.querySelector('#result-title').textContent = movies[winner];

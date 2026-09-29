@@ -12,7 +12,7 @@ async function createApp(seed = {}) {
     }
     return nodes.get(selector);
   }
-  const canvasContext = { clearRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {}, moveTo() {}, arc() {}, closePath() {}, fill() {}, stroke() {}, fillText() {}, measureText: text => ({ width: text.length * 14 }) };
+  const canvasContext = { createRadialGradient() { return { addColorStop() {} }; }, clearRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {}, moveTo() {}, arc() {}, closePath() {}, fill() {}, stroke() {}, fillText() {}, measureText: text => ({ width: text.length * 14 }) };
   node('#wheel').getContext = () => canvasContext;
   const storage = new Map(Object.entries(seed).map(([key, value]) => [key, JSON.stringify(value)]));
   const audios = [];
