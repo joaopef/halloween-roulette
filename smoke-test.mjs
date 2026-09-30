@@ -13,8 +13,8 @@ async function createApp(seed = {}, options = {}) {
   const clipboardWrites = [];
   function makeElement(selector) {
     const classes = new Set();
-    const value = selector.match(/#(?:filter|metadata)-mood-(light|scary|nostalgic)$/)?.[1] ?? (selector === '#marathon-count' ? '3' : '');
-    const options = ['#theme', '#portability-theme'].includes(selector) ? [{ textContent: '', value: 'halloween' }, { textContent: '', value: 'christmas' }] : selector === '#playlist-import-mode' ? [{ textContent: '', value: 'merge' }, { textContent: '', value: 'replace' }] : selector === '#filter-duration' ? ['any', '90', '120', '150', '180'].map(value => ({ value, textContent: '' })) : [];
+    const value = selector.match(/#(?:filter|metadata)-mood-(light|scary|nostalgic)$/)?.[1] ?? (selector === '#marathon-count' ? '3' : selector === '#draw-mode' ? 'wheel' : selector === '#draw-pace' ? 'fast' : '');
+    const options = ['#theme', '#portability-theme'].includes(selector) ? [{ textContent: '', value: 'halloween' }, { textContent: '', value: 'christmas' }] : selector === '#draw-mode' ? ['wheel', 'doors', 'shuffle'].map(value => ({ value, textContent: '' })) : selector === '#draw-pace' ? ['fast', 'suspense'].map(value => ({ value, textContent: '' })) : selector === '#playlist-import-mode' ? [{ textContent: '', value: 'merge' }, { textContent: '', value: 'replace' }] : selector === '#filter-duration' ? ['any', '90', '120', '150', '180'].map(value => ({ value, textContent: '' })) : [];
     const element = { selector, value, textContent: '', innerHTML: '', disabled: false, checked: false, hidden: false, children: [], attributes: {}, listeners: {}, style: {}, dataset: {}, options, files: [], classList: { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, toggle(name, force) { if (force ?? !classes.has(name)) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) }, addEventListener(type, fn) { this.listeners[type] = fn; }, dispatch(type) { return this.listeners[type]?.({ target: this, preventDefault() {} }); }, setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name] ?? null; }, removeAttribute(name) { delete this.attributes[name]; }, replaceChildren() { this.children = []; if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options = []; }, append(...items) { this.children.push(...items); if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options.push(...items); }, querySelector(query) { const value = query.match(/\[value="([^"]+)"\]/)?.[1]; return this.options.find(option => option.value === value) ?? null; }, focus() { this.focused = true; }, click() { this.clicked = true; if (this.download) downloadNames.push(this.download); }, remove() { this.removed = true; } };
     element.firstElementChild = { style: {} };
     return element;
@@ -41,7 +41,7 @@ async function createApp(seed = {}, options = {}) {
     static revokeObjectURL() {}
   }
   const urlImplementation = options.URL ?? InstrumentedURL;
-  const sandbox = vm.createContext({ document: { querySelector: node, querySelectorAll: selector => selector === '[data-i18n]' ? i18nKeys.map(key => { const element = node(`i18n:${key}`); element.setAttribute('data-i18n', key); return element; }) : selector === '[data-collection]' ? ['all', 'halloween-family', 'horror', 'christmas-classics', 'christmas-family'].map(key => { const element = node(`collection:${key}`); element.setAttribute('data-collection', key); return element; }) : [], documentElement: {}, body: node('body'), createElement: tag => makeElement(tag), fonts: null }, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, Audio: class { constructor(src) { this.src = src; this.paused = true; this.playCount = 0; audios.push(this); } play() { this.paused = false; this.playCount++; return Promise.resolve(); } pause() { this.paused = true; } }, crypto: webcrypto, matchMedia: () => ({ matches: reduceMotion }), performance: { now: () => now }, requestAnimationFrame: fn => animationFrames.push(fn), confirm: message => { confirmMessage = message; return confirmDecision; }, URL: urlImplementation, AbortController, TextEncoder, TextDecoder, Uint8Array, btoa: value => Buffer.from(value, 'binary').toString('base64'), atob: value => Buffer.from(value, 'base64').toString('binary'), Blob, setTimeout, navigator: options.navigator ?? { clipboard: { writeText: async text => clipboardWrites.push(text) } }, location: options.location ?? { href: 'https://joaopef.github.io/halloween-roulette/' }, window: windowObject, fetch: fetchMock });
+  const sandbox = vm.createContext({ document: { querySelector: node, querySelectorAll: selector => selector === '[data-i18n]' ? i18nKeys.map(key => { const element = node(`i18n:${key}`); element.setAttribute('data-i18n', key); return element; }) : selector === '[data-collection]' ? ['all', 'halloween-family', 'horror', 'christmas-classics', 'christmas-family'].map(key => { const element = node(`collection:${key}`); element.setAttribute('data-collection', key); return element; }) : selector === '.mystery-door' ? node('#doors').children : [], documentElement: {}, body: node('body'), createElement: tag => makeElement(tag), fonts: null }, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, Audio: class { constructor(src) { this.src = src; this.paused = true; this.playCount = 0; audios.push(this); } play() { this.paused = false; this.playCount++; return Promise.resolve(); } pause() { this.paused = true; } }, crypto: webcrypto, matchMedia: () => ({ matches: reduceMotion }), performance: { now: () => now }, requestAnimationFrame: fn => animationFrames.push(fn), confirm: message => { confirmMessage = message; return confirmDecision; }, URL: urlImplementation, AbortController, TextEncoder, TextDecoder, Uint8Array, btoa: value => Buffer.from(value, 'binary').toString('base64'), atob: value => Buffer.from(value, 'base64').toString('binary'), Blob, setTimeout, navigator: options.navigator ?? { clipboard: { writeText: async text => clipboardWrites.push(text) } }, location: options.location ?? { href: 'https://joaopef.github.io/halloween-roulette/' }, window: windowObject, fetch: fetchMock });
   vm.runInContext(await readFile('movies.js', 'utf8'), sandbox);
   vm.runInContext(await readFile('catalog.js', 'utf8'), sandbox);
   vm.runInContext(await readFile('app.js', 'utf8'), sandbox);
@@ -585,4 +585,62 @@ for (let index = 0; index < 90; index++) assert.equal((await rateLimiter.fetch(n
 const limited = await rateLimiter.fetch(new Request('https://rate-limit.internal/check', { method: 'POST' }));
 assert.equal(limited.status, 429, 'atomic limiter rejects the 91st request in a minute');
 assert.ok(Number(limited.headers.get('Retry-After')) > 0);
-console.log('Passed: original collection and migrations through v5; PT/EN and theme preferences; watched and filter behavior; surprise sessions and one-to-three-film marathons; Wall of Fame, audio, wheel alignment and reduced motion; TMDB proxy and local catalogue; share previews and limits; playlist/backup export, validation, merge, confirmed replacement, restore and corruption handling.');
+for (const count of [1, 2, 3, 9]) {
+  const modeApp = await createApp();
+  modeApp.setReduceMotion(true);
+  modeApp.node('#movies').value = Array.from({ length: count }, (_, index) => index === 0 ? 'A very long title for a manually added movie with no poster' : `Film ${index}`).join('\n');
+  modeApp.node('#movies').dispatch('input');
+  modeApp.node('#draw-mode').value = 'doors'; modeApp.node('#draw-mode').dispatch('change');
+  modeApp.node('#draw-pace').value = 'suspense'; modeApp.node('#draw-pace').dispatch('change');
+  assert.equal(JSON.parse(modeApp.storage.get('cinema-roulette-v5')).themes.halloween.drawMode, 'doors', 'draw mode preference persists for Halloween');
+  assert.equal(JSON.parse(modeApp.storage.get('cinema-roulette-v5')).themes.halloween.drawPace, 'suspense', 'draw pace preference persists for Halloween');
+  const reloadedModeApp = await createApp({ 'cinema-roulette-v5': JSON.parse(modeApp.storage.get('cinema-roulette-v5')) });
+  assert.equal(reloadedModeApp.node('#draw-mode').value, 'doors', 'draw mode survives a reload');
+  assert.equal(reloadedModeApp.node('#draw-pace').value, 'suspense', 'draw pace survives a reload');
+  modeApp.sandbox.document.body.classList.add('cinema-mode');
+  modeApp.node('#cinema-exit').dispatch('click');
+  modeApp.node('#spin').dispatch('click');
+  const doors = modeApp.node('#doors').children;
+  assert.equal(doors.length, Math.min(3, count), 'mystery doors only show available distinct movies');
+  assert.equal(new Set(vm.runInContext('doorCandidates.map(movie => movie.id)', modeApp.sandbox)).size, Math.min(3, count), 'doors never repeat a movie in the same round');
+  const historyBeforeDoors = JSON.stringify(vm.runInContext('history', modeApp.sandbox));
+  assert.equal(JSON.stringify(vm.runInContext('history', modeApp.sandbox)), historyBeforeDoors, 'preparing mystery doors does not record a draw');
+  const reveal = doors[0].dispatch('click');
+  modeApp.animationFrames.shift()(0);
+  const picked = await reveal;
+  assert.equal(modeApp.node('#result-title').textContent, picked.movie, 'door result card matches the drawn title');
+  assert.equal(vm.runInContext('themeData.sessions.length', modeApp.sandbox), 1, 'opening a door records exactly one result');
+  assert.equal(doors[0].getAttribute('aria-label').includes(picked.movie), true, 'the selected door reveals its title');
+  assert.equal(doors[0].children.some(child => child.textContent === picked.movie), true, 'the selected door shows the movie title visually');
+  assert.equal(doors.slice(1).some(door => door.getAttribute('aria-label').includes(picked.movie)), false, 'other doors stay closed without revealing a title');
+  assert.equal(vm.runInContext('themeData.sessions.at(-1).movies[0].id', modeApp.sandbox), picked.id, 'door result and session history use the same movie');
+}
+const shuffleApp = await createApp();
+shuffleApp.setReduceMotion(true);
+shuffleApp.node('#movies').value = 'A Manual Film Without Any Poster Data'; shuffleApp.node('#movies').dispatch('input');
+shuffleApp.node('#draw-mode').value = 'shuffle'; shuffleApp.node('#draw-mode').dispatch('change');
+assert.equal(shuffleApp.node('#wheel').selector, '#wheel');
+assert.equal(shuffleApp.node('#shuffle-stage').hidden, false, 'title shuffle stage is shown without poster metadata');
+const shuffleResult = shuffleApp.sandbox && shuffleApp.node('#spin').dispatch('click');
+shuffleApp.animationFrames.shift()(0);
+const shuffled = await shuffleResult;
+assert.equal(shuffleApp.node('#result-title').textContent, shuffled.movie, 'title shuffle reveals the selected movie in the shared result card');
+assert.equal(vm.runInContext('themeData.sessions.length', shuffleApp.sandbox), 1, 'title shuffle records exactly once');
+for (const mode of ['wheel', 'shuffle']) for (const count of [1, 2, 3, 9]) {
+  const drawApp = await createApp(); drawApp.setReduceMotion(true);
+  drawApp.node('#movies').value = Array.from({ length: count }, (_, index) => `Manual title ${index + 1} with possible missing artwork`).join('\n');
+  drawApp.node('#movies').dispatch('input');
+  drawApp.node('#draw-mode').value = mode; drawApp.node('#draw-mode').dispatch('change');
+  const pendingDraw = drawApp.node('#spin').dispatch('click'); drawApp.animationFrames.shift()(0);
+  const outcome = await pendingDraw;
+  assert.equal(drawApp.node('#result-title').textContent, outcome.movie, `${mode} result matches the selected movie with ${count} eligible`);
+  assert.equal(vm.runInContext('themeData.sessions.at(-1).movies.length', drawApp.sandbox), 1, `${mode} records one movie with ${count} eligible`);
+}
+const noMatchesApp = await createApp();
+noMatchesApp.node('#movies').value = 'A Manual Title With No Mood Metadata'; noMatchesApp.node('#movies').dispatch('input');
+noMatchesApp.node('#draw-mode').value = 'doors'; noMatchesApp.node('#draw-mode').dispatch('change');
+noMatchesApp.node('#filter-mood-scary').checked = true; noMatchesApp.node('#filter-mood-scary').dispatch('change');
+assert.equal(vm.runInContext('eligibleRecords().length', noMatchesApp.sandbox), 0, 'empty filters keep the shared eligible pool empty');
+assert.equal(noMatchesApp.node('#spin').disabled, true, 'empty filters cannot start any draw mode');
+assert.equal(noMatchesApp.node('#doors').children.length, 0, 'empty filters do not offer mystery doors');
+console.log('Passed: original collection and migrations through v5; PT/EN and theme preferences; watched and filter behavior; surprise sessions and one-to-three-film marathons; shared Halloween draw modes with 1, 2, 3 and 9 eligible films; result/history consistency, manual titles without posters, Wall of Fame, audio, wheel alignment and reduced motion; TMDB proxy and local catalogue; share previews and limits; playlist/backup export, validation, merge, confirmed replacement, restore and corruption handling.');
