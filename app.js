@@ -21,6 +21,12 @@ const catalogSearchForm = document.querySelector('#catalog-search-form');
 const catalogSearchInput = document.querySelector('#catalog-search');
 const catalogResults = document.querySelector('#catalog-results');
 const relatedResults = document.querySelector('#related-results');
+const sharedPreviewSection = document.querySelector('#shared-preview');
+const sharedPreviewList = document.querySelector('#shared-preview-list');
+const portabilityThemeSelect = document.querySelector('#portability-theme');
+const playlistImportModeSelect = document.querySelector('#playlist-import-mode');
+const playlistFileInput = document.querySelector('#playlist-file-input');
+const backupFileInput = document.querySelector('#backup-file-input');
 const spinIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg>';
 const STORAGE_KEY = 'cinema-roulette-v5';
 const PREVIOUS_STORAGE_KEY = 'cinema-roulette-v4';
@@ -41,6 +47,17 @@ let currentSession = null;
 let lastResultType = 'single';
 let marathonStatusKey = '';
 let marathonStatusArgs = [];
+let sharedPreviewData = null;
+let sharedPreviewInvalid = false;
+let shareStatusKey = '';
+let playlistImportStatusKey = '';
+let playlistImportStatusArgs = [];
+let backupImportStatusKey = '';
+let portabilityStatusKey = '';
+let pendingPlaylistImport = null;
+let pendingBackupImport = null;
+let playlistImportPreviewData = null;
+let backupImportPreviewData = null;
 
 const COPY = {
   'pt-PT': {
@@ -58,6 +75,9 @@ const COPY = {
     filterStatusUnknown: count => `${count} ${count === 1 ? 'filme' : 'filmes'} sem duração conhecida ficam excluídos pelo limite de tempo. Podes preencher a duração em Metadados dos filmes.`, filterStatusNoMood: count => `${count} ${count === 1 ? 'filme' : 'filmes'} sem disposição ficam excluídos pela seleção atual.`, noFilterMatches: 'Nenhum filme corresponde aos filtros. Limpa ou ajusta os filtros.', clearFilters: 'Limpar filtros',
     surpriseTitle: 'Sessão surpresa', surpriseHelp: 'Sorteia apenas entre os filmes da tua lista que correspondem à disposição e ao tempo escolhidos. Não adiciona nem remove filmes.', surpriseMoodLabel: 'Disposição', surpriseDurationLabel: 'Tempo disponível', surpriseAnyMood: 'Qualquer disposição', surpriseRun: 'Sortear sessão surpresa', surpriseMatches: count => `${count} ${count === 1 ? 'filme corresponde' : 'filmes correspondem'} a estes critérios.`, surpriseNoMatch: 'Não há filmes na tua lista que correspondam a estes critérios. Ajusta os filtros ou descobre filmes.', surpriseDiscover: 'Descobrir filmes',
     marathonTitle: 'Maratona de filmes', marathonHelp: 'Escolhe uma sessão de um, dois ou três filmes. O sorteio respeita os filtros e os filmes já vistos que excluíste; não repete filmes na mesma sessão.', marathonCountLabel: 'Filmes nesta sessão', marathonRun: 'Sortear maratona', marathonPoolCount: count => `${count} ${count === 1 ? 'filme elegível' : 'filmes elegíveis'} com os filtros atuais.`, marathonNoMatch: 'Não há filmes elegíveis. Ajusta os filtros ou descobre filmes.', marathonTooFew: (requested, available) => `Pediste ${requested} filmes, mas só há ${available} elegíveis. Sortear os ${available} disponíveis?`, marathonRecordedLimited: (actual, requested) => `Sessão registada com ${actual} filmes elegíveis, em vez dos ${requested} pedidos.`, marathonCancelled: 'Sessão cancelada. Podes ajustar os filtros ou o número de filmes.', marathonRecorded: count => `Sessão registada com ${count} ${count === 1 ? 'filme' : 'filmes'}.`, marathonOrderTitle: 'Ordem de visualização', sessionHistoryTitle: 'Sessões recentes', sessionHistoryEmpty: 'Ainda não há sessões sorteadas neste tema.', sessionSummary: (date, titles) => `${date} · ${titles}`, sessionMovieViewed: title => `Marcar ${title} como visto`, sessionMovieUnviewed: title => `Desmarcar ${title} como visto`, runtimeTotal: total => `Duração total: ${total} min.`, runtimeTotalIncomplete: total => `Duração conhecida: ${total} min; total incompleto porque há filmes sem duração.`, runtimeAllUnknown: 'Duração total incompleta: faltam durações conhecidas.',
+    sharingTitle: 'Partilhar playlist', sharingHelp: 'Cria um link com o tema e os títulos da playlist. O link não inclui o histórico, os vistos nem as preferências.', generateShare: 'Gerar link de partilha', shareLinkCaption: 'Link da playlist', copyShare: 'Copiar link', shareReady: 'Link pronto. Qualquer pessoa com o link pode pré-visualizar esta seleção.', shareTooLong: 'A playlist é demasiado grande para um link curto. Exporta o ficheiro JSON da playlist.', shareFile: 'Transferir playlist para partilhar', shareCopyFailed: 'Não foi possível copiar automaticamente. Seleciona e copia o link.', sharedPreviewTitle: 'Pré-visualização da playlist partilhada', sharedPreviewSummary: (theme, count) => `Tema ${theme} · ${count} ${count === 1 ? 'filme' : 'filmes'}. A tua coleção atual não será substituída.`, importShared: 'Adicionar à minha coleção', dismissShare: 'Fechar pré-visualização', sharedImported: (added, skipped) => `${added} filmes adicionados; ${skipped} duplicados ignorados.`, sharedLimit: 'A importação excederia o limite de 60 filmes. Edita primeiro a tua coleção.', sharedInvalid: 'O link de partilha é inválido ou não está completo. Nenhum dado foi importado.',
+    portabilityTitle: 'Importar e exportar', portabilityHelp: 'Os ficheiros transferem dados entre navegadores. A aplicação não sincroniza dispositivos.', portabilityTheme: 'Tema da playlist', exportPlaylist: 'Exportar playlist JSON', playlistImportMode: 'Ao importar uma playlist', playlistMerge: 'Adicionar filmes sem duplicados', playlistReplace: 'Substituir a playlist deste tema', choosePlaylistFile: 'Escolher ficheiro de playlist JSON', applyPlaylistImport: 'Aplicar importação da playlist', playlistImportPreview: (theme, count, mode) => `Playlist ${theme} · ${count} filmes · ${mode}. Pré-visualiza antes de aplicar.`, playlistImportInvalid: 'Ficheiro de playlist inválido ou incompatível. Nada foi alterado.', playlistImportDone: (added, skipped) => `${added} filmes importados; ${skipped} duplicados ignorados.`, playlistImportLimit: 'A importação ultrapassa o limite de 60 filmes. Escolhe substituir a playlist ou reduz a lista atual.', confirmReplacePlaylist: (theme, count) => `Substituir a playlist de ${theme} por ${count} filmes? O histórico e os vistos ficam preservados.`,
+    backupHelp: 'A cópia de segurança inclui as duas playlists, Wall of Fame, vistos, sessões e preferências locais.', exportBackup: 'Exportar cópia de segurança', chooseBackupFile: 'Escolher cópia de segurança JSON', applyBackupImport: 'Repor esta cópia de segurança', backupPreviewSummary: (halloweenCount, christmasCount, draws, watched, sessions) => `Halloween: ${halloweenCount} filmes · Natal: ${christmasCount} filmes · ${draws} sorteios · ${watched} vistos · ${sessions} sessões. A reposição substituirá os dados locais depois de confirmares.`, backupInvalid: 'Cópia de segurança inválida ou incompatível. Os dados locais foram mantidos.', confirmReplaceBackup: (halloweenCount, christmasCount, draws, watched, sessions) => `Substituir os dados locais por esta cópia? Halloween: ${halloweenCount} filmes; Natal: ${christmasCount}; ${draws} sorteios, ${watched} vistos, ${sessions} sessões.`, backupImported: 'Cópia de segurança reposta.', portabilityFileTooLarge: 'O ficheiro excede o limite de leitura de 2 MB.',
     metadataTitle: 'Metadados dos filmes', metadataHelp: 'Completa a duração e a disposição de filmes da tua lista. “Leve, com ambiente familiar” descreve o tom editorial e não garante adequação etária.', metadataMovieLabel: 'Filme', metadataRuntimeLabel: 'Duração em minutos', metadataMoodLegend: 'Disposições', saveMetadata: 'Guardar metadados', metadataSaved: 'Metadados guardados.', metadataInvalid: 'Indica uma duração entre 1 e 600 minutos ou deixa o campo vazio.', metadataNoMovies: 'Não há filmes na lista para editar.',
     discoverTitle: 'Descobrir filmes', discoverIntro: 'Sugestões temáticas curadas. Não são recomendações personalizadas por IA.', searchLabel: 'Pesquisar filmes por título', searchPlaceholder: 'Título do filme', searchButton: 'Pesquisar',
     collectionLabel: 'Coleções temáticas', collectionAll: 'Todas as sugestões', collectionHalloweenFamily: 'Halloween em família', collectionHorror: 'Terror a sério', collectionChristmasClassics: 'Clássicos de Natal', collectionChristmasFamily: 'Natal em família',
@@ -89,6 +109,9 @@ const COPY = {
     filterStatusUnknown: count => `${count} ${count === 1 ? 'movie has' : 'movies have'} no known runtime and are excluded by the time limit. Add a runtime under Movie metadata.`, filterStatusNoMood: count => `${count} ${count === 1 ? 'movie has' : 'movies have'} no mood label and is excluded by the current selection.`, noFilterMatches: 'No movies match these filters. Clear or adjust the filters.', clearFilters: 'Clear filters',
     surpriseTitle: 'Surprise session', surpriseHelp: 'Draw only from movies in your list that match the selected mood and time. This does not add or remove movies.', surpriseMoodLabel: 'Mood', surpriseDurationLabel: 'Time available', surpriseAnyMood: 'Any mood', surpriseRun: 'Draw a surprise session', surpriseMatches: count => `${count} ${count === 1 ? 'movie matches' : 'movies match'} these criteria.`, surpriseNoMatch: 'No movies in your list match these criteria. Adjust the filters or discover movies.', surpriseDiscover: 'Discover movies',
     marathonTitle: 'Movie marathon', marathonHelp: 'Choose a one-, two-, or three-film session. The draw respects filters and any watched movies you have excluded; it never repeats a movie within one session.', marathonCountLabel: 'Movies in this session', marathonRun: 'Draw a marathon', marathonPoolCount: count => `${count} ${count === 1 ? 'eligible movie' : 'eligible movies'} with the current filters.`, marathonNoMatch: 'There are no eligible movies. Adjust the filters or discover movies.', marathonTooFew: (requested, available) => `You requested ${requested} movies, but only ${available} are eligible. Draw the ${available} available movies?`, marathonRecordedLimited: (actual, requested) => `Session recorded with ${actual} eligible movies instead of the requested ${requested}.`, marathonCancelled: 'Session cancelled. You can adjust the filters or movie count.', marathonRecorded: count => `Session recorded with ${count} ${count === 1 ? 'movie' : 'movies'}.`, marathonOrderTitle: 'Viewing order', sessionHistoryTitle: 'Recent sessions', sessionHistoryEmpty: 'No sessions have been drawn for this theme yet.', sessionSummary: (date, titles) => `${date} · ${titles}`, sessionMovieViewed: title => `Mark ${title} as watched`, sessionMovieUnviewed: title => `Undo watched status for ${title}`, runtimeTotal: total => `Total runtime: ${total} min.`, runtimeTotalIncomplete: total => `Known runtime: ${total} min; total is incomplete because some runtimes are unknown.`, runtimeAllUnknown: 'Total runtime is incomplete because runtimes are unknown.',
+    sharingTitle: 'Share playlist', sharingHelp: 'Create a link with the theme and playlist titles. It does not include history, watched movies, or preferences.', generateShare: 'Generate share link', shareLinkCaption: 'Playlist link', copyShare: 'Copy link', shareReady: 'Link ready. Anyone with the link can preview this selection.', shareTooLong: 'This playlist is too large for a short link. Export the playlist JSON file.', shareFile: 'Download playlist to share', shareCopyFailed: 'Automatic copy failed. Select and copy the link.', sharedPreviewTitle: 'Shared playlist preview', sharedPreviewSummary: (theme, count) => `${theme} theme · ${count} ${count === 1 ? 'movie' : 'movies'}. Your current collection will not be replaced.`, importShared: 'Add to my collection', dismissShare: 'Close preview', sharedImported: (added, skipped) => `${added} movies added; ${skipped} duplicates skipped.`, sharedLimit: 'Import would exceed the 60-movie limit. Edit your collection first.', sharedInvalid: 'The share link is invalid or incomplete. No data was imported.',
+    portabilityTitle: 'Import and export', portabilityHelp: 'Files transfer data between browsers. The app does not sync devices.', portabilityTheme: 'Playlist theme', exportPlaylist: 'Export playlist JSON', playlistImportMode: 'When importing a playlist', playlistMerge: 'Add movies without duplicates', playlistReplace: 'Replace this theme’s playlist', choosePlaylistFile: 'Choose playlist JSON file', applyPlaylistImport: 'Apply playlist import', playlistImportPreview: (theme, count, mode) => `${theme} playlist · ${count} movies · ${mode}. Preview before applying.`, playlistImportInvalid: 'Playlist file is invalid or incompatible. Nothing changed.', playlistImportDone: (added, skipped) => `${added} movies imported; ${skipped} duplicates skipped.`, playlistImportLimit: 'Importing these movies would exceed the 60-movie limit. Choose replace or reduce the current list.', confirmReplacePlaylist: (theme, count) => `Replace the ${theme} playlist with ${count} movies? History and watched status will be preserved.`,
+    backupHelp: 'The backup includes both playlists, Wall of Fame, watched movies, sessions, and local preferences.', exportBackup: 'Export backup', chooseBackupFile: 'Choose backup JSON file', applyBackupImport: 'Restore this backup', backupPreviewSummary: (halloweenCount, christmasCount, draws, watched, sessions) => `Halloween: ${halloweenCount} movies · Christmas: ${christmasCount} movies · ${draws} draws · ${watched} watched · ${sessions} sessions. Restoring will replace local data after confirmation.`, backupInvalid: 'Backup file is invalid or incompatible. Local data was preserved.', confirmReplaceBackup: (halloweenCount, christmasCount, draws, watched, sessions) => `Replace local data with this backup? Halloween: ${halloweenCount} movies; Christmas: ${christmasCount}; ${draws} draws, ${watched} watched, ${sessions} sessions.`, backupImported: 'Backup restored.', portabilityFileTooLarge: 'File exceeds the 2 MB import limit.',
     metadataTitle: 'Movie metadata', metadataHelp: 'Fill in runtime and mood for movies on your list. “Light, family-oriented” describes editorial tone and does not guarantee age suitability.', metadataMovieLabel: 'Movie', metadataRuntimeLabel: 'Runtime in minutes', metadataMoodLegend: 'Moods', saveMetadata: 'Save metadata', metadataSaved: 'Metadata saved.', metadataInvalid: 'Enter a runtime from 1 to 600 minutes or leave it blank.', metadataNoMovies: 'There are no movies on the list to edit.',
     discoverTitle: 'Discover movies', discoverIntro: 'Curated theme suggestions. These are not AI-personalized recommendations.', searchLabel: 'Search movies by title', searchPlaceholder: 'Movie title', searchButton: 'Search',
     collectionLabel: 'Themed collections', collectionAll: 'All suggestions', collectionHalloweenFamily: 'Halloween for families', collectionHorror: 'Proper scares', collectionChristmasClassics: 'Christmas classics', collectionChristmasFamily: 'Christmas for families',
@@ -401,6 +424,29 @@ function renderLanguage() {
     button.setAttribute('aria-pressed', String(collection === selectedCollection));
   });
   document.querySelector('#related-title').textContent = translate('relatedTitle');
+  document.querySelector('#share-status').textContent = shareStatusKey ? translate(shareStatusKey) : '';
+  renderSharedPreview();
+  renderPortability();
+  document.querySelector('#sharing-help').textContent = translate('sharingHelp');
+  document.querySelector('#generate-share').textContent = translate('generateShare');
+  document.querySelector('#generate-share').disabled = playlistRecords().length === 0;
+  document.querySelector('#share-link-caption').textContent = translate('shareLinkCaption');
+  document.querySelector('#copy-share-link').textContent = translate('copyShare');
+  document.querySelector('#share-file-download').textContent = translate('shareFile');
+  document.querySelector('#portability-help').textContent = translate('portabilityHelp');
+  document.querySelector('#portability-theme-label').textContent = translate('portabilityTheme');
+  document.querySelector('#export-playlist').textContent = translate('exportPlaylist');
+  document.querySelector('#playlist-import-label').textContent = translate('playlistImportMode');
+  document.querySelector('#choose-playlist-file').textContent = translate('choosePlaylistFile');
+  document.querySelector('#apply-playlist-import').textContent = translate('applyPlaylistImport');
+  portabilityThemeSelect.options[0].textContent = translate('halloween');
+  portabilityThemeSelect.options[1].textContent = translate('christmas');
+  playlistImportModeSelect.options[0].textContent = translate('playlistMerge');
+  playlistImportModeSelect.options[1].textContent = translate('playlistReplace');
+  document.querySelector('#backup-help').textContent = translate('backupHelp');
+  document.querySelector('#export-backup').textContent = translate('exportBackup');
+  document.querySelector('#choose-backup-file').textContent = translate('chooseBackupFile');
+  document.querySelector('#apply-backup-import').textContent = translate('applyBackupImport');
   document.querySelector('#history-title').textContent = translate('wallTitle');
   document.querySelector('#tmdb-notice').textContent = translate('tmdbNotice');
   document.querySelector('#tmdb-logo').alt = translate('tmdbLogoAlt');
@@ -436,6 +482,285 @@ function syncTheme() {
     : '<path d="M32 13c-8-5-24 1-25 18-2 18 13 26 25 22 12 4 27-4 25-22-1-17-17-23-25-18Z" fill="currentColor"/><path d="m28 13 3-8 8-2-4 11" fill="none" stroke="currentColor" stroke-width="4"/><path d="m15 31 12-6-3 12Zm34 0-12-6 3 12ZM31 32l-4 8h10ZM16 42l8 3 4-3 4 5 5-5 4 3 7-3-5 8H21Z" fill="#160d07"/>';
   document.querySelector('.intro .eyebrow').firstElementChild.style.background = 'var(--accent)';
 }
+
+function displayThemeName(theme) { return translate(theme === 'christmas' ? 'christmas' : 'halloween'); }
+function base64UrlEncode(value) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+function base64UrlDecode(value) {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]+$/.test(value) || value.length > 16000) throw new Error('invalid share encoding');
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4);
+  const binary = atob(base64);
+  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+}
+function validateSharedPayload(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).sort().join(',') !== 'format,playlist,theme,version') return null;
+  if (value.format !== 'halloween-roulette-share' || value.version !== 1 || !['halloween', 'christmas'].includes(value.theme) || !Array.isArray(value.playlist) || value.playlist.length < 1 || value.playlist.length > 60) return null;
+  const playlist = [];
+  const seen = new Set();
+  for (const entry of value.playlist) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry) || !['title', 'id,title'].includes(Object.keys(entry).sort().join(',')) || typeof entry.title !== 'string' || !entry.title.trim() || entry.title.length > 500 || (entry.id !== undefined && (typeof entry.id !== 'string' || entry.id.length > 600))) return null;
+    const title = entry.title.trim();
+    const tmdbMatch = entry.id?.match(/^tmdb:(\d{1,10})$/);
+    const id = tmdbMatch ? `tmdb:${Number(tmdbMatch[1])}` : manualId(title);
+    if (tmdbMatch && Number(tmdbMatch[1]) < 1) return null;
+    if (entry.id !== undefined && !tmdbMatch && entry.id !== id) return null;
+    if (seen.has(id)) return null;
+    seen.add(id);
+    playlist.push(createMovie(title, tmdbMatch ? 'tmdb' : 'manual', { id, tmdbId: tmdbMatch ? Number(tmdbMatch[1]) : null }));
+  }
+  return { theme: value.theme, playlist };
+}
+function readSharedPlaylist() {
+  let hash = '';
+  try {
+    hash = new URL(location.href).hash;
+    if (!hash.startsWith('#playlist=')) return;
+    const payload = JSON.parse(base64UrlDecode(hash.slice('#playlist='.length)));
+    sharedPreviewData = validateSharedPayload(payload);
+    sharedPreviewInvalid = !sharedPreviewData;
+  } catch {
+    if (hash.startsWith('#playlist=')) sharedPreviewInvalid = true;
+  }
+}
+function renderSharedPreview() {
+  const found = Boolean(sharedPreviewData || sharedPreviewInvalid);
+  sharedPreviewSection.hidden = !found;
+  if (!found) return;
+  document.querySelector('#shared-preview-title').textContent = translate('sharedPreviewTitle');
+  sharedPreviewList.replaceChildren();
+  const importButton = document.querySelector('#import-shared');
+  importButton.hidden = sharedPreviewInvalid;
+  document.querySelector('#dismiss-shared').textContent = translate('dismissShare');
+  if (sharedPreviewInvalid) {
+    document.querySelector('#shared-preview-summary').textContent = translate('sharedInvalid');
+    document.querySelector('#shared-preview-status').textContent = '';
+    return;
+  }
+  document.querySelector('#shared-preview-summary').textContent = translate('sharedPreviewSummary', displayThemeName(sharedPreviewData.theme), sharedPreviewData.playlist.length);
+  sharedPreviewData.playlist.forEach(movie => {
+    const item = document.createElement('li'); item.textContent = movie.title; sharedPreviewList.append(item);
+  });
+  importButton.textContent = translate('importShared');
+  document.querySelector('#shared-preview-status').textContent = portabilityStatusKey === 'sharedImported' ? translate('sharedImported', ...playlistImportStatusArgs) : portabilityStatusKey === 'sharedLimit' ? translate('sharedLimit') : '';
+}
+function renderPortability() {
+  if (!portabilityThemeSelect.options.length) return;
+  portabilityThemeSelect.value ||= activeTheme;
+  const playlistPreview = document.querySelector('#playlist-import-preview');
+  playlistPreview.hidden = !playlistImportPreviewData;
+  if (playlistImportPreviewData) {
+    const mode = playlistImportModeSelect.value === 'replace' ? translate('playlistReplace') : translate('playlistMerge');
+    document.querySelector('#playlist-import-summary').textContent = translate('playlistImportPreview', displayThemeName(playlistImportPreviewData.theme), playlistImportPreviewData.playlist.length, mode);
+  }
+  const backupPreview = document.querySelector('#backup-import-preview');
+  backupPreview.hidden = !backupImportPreviewData;
+  if (backupImportPreviewData) document.querySelector('#backup-import-summary').textContent = backupSummary(backupImportPreviewData);
+  if (portabilityStatusKey === 'playlistImportInvalid') document.querySelector('#portability-status').textContent = translate('playlistImportInvalid');
+  else if (portabilityStatusKey === 'playlistImportDone') document.querySelector('#portability-status').textContent = translate('playlistImportDone', ...playlistImportStatusArgs);
+  else if (portabilityStatusKey === 'playlistImportLimit') document.querySelector('#portability-status').textContent = translate('playlistImportLimit');
+  else if (portabilityStatusKey === 'backupInvalid') document.querySelector('#portability-status').textContent = translate('backupInvalid');
+  else if (portabilityStatusKey === 'backupImported') document.querySelector('#portability-status').textContent = translate('backupImported');
+  else if (portabilityStatusKey === 'portabilityFileTooLarge') document.querySelector('#portability-status').textContent = translate('portabilityFileTooLarge');
+  else if (portabilityStatusKey === 'sharedLimit') document.querySelector('#portability-status').textContent = translate('sharedLimit');
+  else document.querySelector('#portability-status').textContent = '';
+}
+function playlistFileRecord(movie) {
+  const record = { id: movie.id, title: movie.title, year: movie.year, runtimeMinutes: movie.runtimeMinutes, genres: movie.genres, moods: movie.moods, overview: movie.overview, translatedTitle: movie.translatedTitle, posterUrl: movie.posterUrl, tmdbRating: movie.tmdbRating, tmdbId: movie.tmdbId, imdbId: movie.imdbId, source: movie.source };
+  return record;
+}
+function playlistFilePayload(theme) {
+  return { format: 'halloween-roulette-playlist', version: 1, theme, playlist: state.themes[theme].playlist.map(playlistFileRecord) };
+}
+function sanitizePortableMovie(value) {
+  const fields = ['genres', 'id', 'imdbId', 'moods', 'overview', 'posterUrl', 'runtimeMinutes', 'source', 'title', 'tmdbId', 'tmdbRating', 'translatedTitle', 'year'];
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !fields.includes(key))) return null;
+  if (typeof value.title !== 'string' || !value.title.trim() || value.title.length > 500 || typeof value.id !== 'string' || value.id.length > 600) return null;
+  const title = value.title.trim();
+  const tmdbMatch = value.id.match(/^tmdb:(\d{1,10})$/);
+  if (tmdbMatch) {
+    const tmdbId = Number(tmdbMatch[1]);
+    if (!Number.isSafeInteger(tmdbId) || tmdbId < 1 || (value.tmdbId !== undefined && value.tmdbId !== tmdbId)) return null;
+  } else if (value.id !== manualId(title) || (value.tmdbId !== undefined && value.tmdbId !== null)) return null;
+  const runtime = value.runtimeMinutes === undefined ? null : value.runtimeMinutes;
+  if (runtime !== null && (!Number.isSafeInteger(runtime) || runtime < 1 || runtime > 600)) return null;
+  if (value.year !== undefined && value.year !== null && (!Number.isSafeInteger(value.year) || value.year < 1880 || value.year > 2200)) return null;
+  if (value.genres !== undefined && (!Array.isArray(value.genres) || value.genres.length > 30 || value.genres.some(item => typeof item !== 'string' || item.length > 80))) return null;
+  if (value.moods !== undefined && (!Array.isArray(value.moods) || value.moods.some(item => !['light', 'scary', 'nostalgic'].includes(item)))) return null;
+  let overview = value.overview ?? null;
+  if (overview !== null && (!overview || typeof overview !== 'object' || Array.isArray(overview) || Object.entries(overview).some(([key, text]) => !['en', 'pt-PT'].includes(key) || typeof text !== 'string' || text.length > 2000))) return null;
+  let posterUrl = value.posterUrl ?? null;
+  if (posterUrl !== null && safePosterUrl(posterUrl) !== posterUrl) return null;
+  const tmdbRating = value.tmdbRating ?? null;
+  if (tmdbRating !== null && (!Number.isFinite(tmdbRating) || tmdbRating < 0 || tmdbRating > 10 || !tmdbMatch)) return null;
+  const imdbId = value.imdbId ?? null;
+  if (imdbId !== null && (typeof imdbId !== 'string' || !/^tt\d{7,10}$/.test(imdbId))) return null;
+  const translatedTitle = value.translatedTitle ?? null;
+  if (translatedTitle !== null && (typeof translatedTitle !== 'string' || translatedTitle.length > 500)) return null;
+  const source = value.source ?? (tmdbMatch ? 'tmdb' : 'manual');
+  if (!['manual', 'tmdb', 'catalog', 'curated'].includes(source) || (tmdbMatch && source === 'manual')) return null;
+  return createMovie(title, source, { id: value.id, year: value.year, runtimeMinutes: runtime, genres: value.genres ?? [], moods: value.moods ?? [], overview, translatedTitle, posterUrl, tmdbRating, tmdbId: tmdbMatch ? Number(tmdbMatch[1]) : null, imdbId });
+}
+function validatePlaylistPayload(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).sort().join(',') !== 'format,playlist,theme,version' || value.format !== 'halloween-roulette-playlist' || value.version !== 1 || !['halloween', 'christmas'].includes(value.theme) || !Array.isArray(value.playlist) || value.playlist.length > 60) return null;
+  const playlist = [];
+  const seen = new Set();
+  for (const rawMovie of value.playlist) {
+    const movie = sanitizePortableMovie(rawMovie);
+    if (!movie || seen.has(movie.id)) return null;
+    seen.add(movie.id); playlist.push(movie);
+  }
+  return { theme: value.theme, playlist };
+}
+function downloadJSON(payload, filename) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a'); link.href = url; link.download = filename;
+  document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function sharePlaylist() {
+  const records = playlistRecords();
+  const payload = { format: 'halloween-roulette-share', version: 1, theme: activeTheme, playlist: records.map(movie => movie.tmdbId ? ({ id: movie.id, title: movie.title }) : ({ title: movie.title })) };
+  const url = new URL(location.href); url.search = ''; url.hash = `playlist=${base64UrlEncode(JSON.stringify(payload))}`;
+  const value = url.href;
+  shareStatusKey = value.length <= 1800 ? 'shareReady' : 'shareTooLong';
+  document.querySelector('#share-status').textContent = translate(shareStatusKey);
+  const shortLink = value.length <= 1800;
+  document.querySelector('#share-link-label').hidden = !shortLink;
+  document.querySelector('#copy-share-link').hidden = !shortLink;
+  document.querySelector('#share-file-download').hidden = shortLink;
+  document.querySelector('#share-link').value = shortLink ? value : '';
+}
+function sameMovieRecord(first, second) { return first.id === second.id || (Number.isSafeInteger(first.tmdbId) && first.tmdbId === second.tmdbId); }
+function activateImportedTheme(theme, alreadyPersisted = false) {
+  if (!alreadyPersisted) persistState();
+  activeTheme = theme; themeData = state.themes[theme]; history = themeData.history; viewed = themeData.viewed; avoidViewed = themeData.avoidViewed;
+  state.activeTheme = theme; currentSession = themeData.sessions.at(-1) ?? null; lastResultType = 'single'; lastResultMovieId = null; winningIndex = -1;
+  marathonStatusKey = ''; marathonStatusArgs = []; showAllHistory = false;
+  input.value = themeData.playlist.map(movie => movie.title).join('\n');
+  themeSelect.value = theme; portabilityThemeSelect.value = theme;
+  selectedCollection = 'all'; catalogSearchInput.value = '';
+  catalogRequestController?.abort(); remoteSearchResults = null; catalogStatusOverride = '';
+  syncTheme(); updateList(); renderHistory();
+}
+function importSharedPlaylist() {
+  if (!sharedPreviewData) return;
+  persistState();
+  const { theme, playlist } = sharedPreviewData;
+  const destination = state.themes[theme].playlist;
+  const merged = [...destination]; let added = 0; let skipped = 0;
+  for (const movie of playlist) {
+    if (merged.some(existing => sameMovieRecord(existing, movie))) { skipped++; continue; }
+    merged.push(movie); added++;
+  }
+  if (merged.length > 60) { portabilityStatusKey = 'sharedLimit'; renderSharedPreview(); return; }
+  state.themes[theme].playlist = merged;
+  playlistImportStatusArgs = [added, skipped]; portabilityStatusKey = 'sharedImported';
+  activateImportedTheme(theme, true);
+  renderSharedPreview();
+}
+function backupPayload() { return { format: 'halloween-roulette-backup', version: 1, savedAt: new Date().toISOString(), data: state }; }
+function validateBackupPayload(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.format !== 'halloween-roulette-backup' || value.version !== 1 || !value.data || typeof value.data !== 'object' || value.data.version !== 5 || !['halloween', 'christmas'].includes(value.data.activeTheme) || !['en', 'pt-PT'].includes(value.data.language) || typeof value.data.soundEnabled !== 'boolean' || !value.data.themes) return null;
+  const themes = {};
+  for (const theme of ['halloween', 'christmas']) {
+    const record = value.data.themes[theme];
+    if (!record || !Array.isArray(record.playlist) || record.playlist.length > 60 || !record.history || typeof record.history !== 'object' || Array.isArray(record.history) || Object.keys(record.history).length > 5000 || !Array.isArray(record.viewed) || record.viewed.length > 5000 || record.viewed.some(id => typeof id !== 'string' || id.length > 600) || typeof record.avoidViewed !== 'boolean' || !record.filters || !Array.isArray(record.filters.moods) || record.filters.moods.some(mood => !['light', 'scary', 'nostalgic'].includes(mood)) || !(record.filters.maxDuration === null || [90, 120, 150, 180].includes(record.filters.maxDuration)) || !Array.isArray(record.sessions) || record.sessions.length > 100) return null;
+    const playlist = [];
+    const seen = new Set();
+    for (const movie of record.playlist) { const safe = sanitizePortableMovie(movie); if (!safe || seen.has(safe.id)) return null; seen.add(safe.id); playlist.push(safe); }
+    for (const [key, entry] of Object.entries(record.history)) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry) || key === '__proto__' || typeof entry.id !== 'string' || entry.id !== key || entry.id.length > 600 || typeof entry.title !== 'string' || !entry.title.trim() || entry.title.length > 500 || !Number.isSafeInteger(entry.count) || entry.count < 1) return null;
+    }
+    const sessions = sanitizeSessions(record.sessions);
+    if (sessions.length !== record.sessions.length || sessions.some((session, index) => session.movies.length !== record.sessions[index].movies.length)) return null;
+    themes[theme] = { playlist, history: sanitizeHistory(record.history, playlist), viewed: [...new Set(record.viewed)], avoidViewed: record.avoidViewed, filters: { moods: [...new Set(record.filters.moods)], maxDuration: record.filters.maxDuration }, sessions };
+  }
+  return { version: 5, activeTheme: value.data.activeTheme, language: value.data.language, soundEnabled: value.data.soundEnabled, themes };
+}
+function backupStats(data) {
+  const halloween = data.themes.halloween; const christmas = data.themes.christmas;
+  const draws = [halloween, christmas].reduce((sum, theme) => sum + Object.values(theme.history).reduce((total, entry) => total + entry.count, 0), 0);
+  const watched = halloween.viewed.length + christmas.viewed.length;
+  const sessions = halloween.sessions.length + christmas.sessions.length;
+  return [halloween.playlist.length, christmas.playlist.length, draws, watched, sessions];
+}
+function backupSummary(data) { return translate('backupPreviewSummary', ...backupStats(data)); }
+async function readImportFile(file, maxBytes = 2_000_000) {
+  if (!file || !Number.isFinite(file.size) || file.size > maxBytes) throw new RangeError('file too large');
+  const text = await file.text();
+  if (typeof text !== 'string' || text.length > maxBytes) throw new RangeError('file too large');
+  return JSON.parse(text);
+}
+document.querySelector('#generate-share').addEventListener('click', sharePlaylist);
+document.querySelector('#copy-share-link').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(document.querySelector('#share-link').value); shareStatusKey = 'shareReady'; document.querySelector('#share-status').textContent = translate(shareStatusKey); }
+  catch { shareStatusKey = 'shareCopyFailed'; document.querySelector('#share-status').textContent = translate(shareStatusKey); }
+});
+document.querySelector('#share-file-download').addEventListener('click', () => downloadJSON(playlistFilePayload(activeTheme), `halloween-roulette-${activeTheme}-playlist.json`));
+document.querySelector('#import-shared').addEventListener('click', importSharedPlaylist);
+document.querySelector('#dismiss-shared').addEventListener('click', () => {
+  sharedPreviewData = null; sharedPreviewInvalid = false; portabilityStatusKey = '';
+  try { const url = new URL(location.href); url.hash = ''; window.history?.replaceState(null, '', url.href); } catch { /* embedded browser may not expose session history */ }
+  renderSharedPreview();
+});
+portabilityThemeSelect.addEventListener('change', () => { portabilityStatusKey = ''; renderPortability(); });
+playlistImportModeSelect.addEventListener('change', () => { portabilityStatusKey = ''; renderPortability(); });
+document.querySelector('#export-playlist').addEventListener('click', () => downloadJSON(playlistFilePayload(portabilityThemeSelect.value === 'christmas' ? 'christmas' : 'halloween'), `halloween-roulette-${portabilityThemeSelect.value}-playlist.json`));
+document.querySelector('#choose-playlist-file').addEventListener('click', () => playlistFileInput.click());
+playlistFileInput.addEventListener('change', async event => {
+  const file = event.target.files?.[0]; event.target.value = '';
+  portabilityStatusKey = ''; pendingPlaylistImport = null; playlistImportPreviewData = null;
+  try { pendingPlaylistImport = validatePlaylistPayload(await readImportFile(file)); }
+  catch (error) { portabilityStatusKey = error instanceof RangeError ? 'portabilityFileTooLarge' : 'playlistImportInvalid'; }
+  if (!pendingPlaylistImport && !portabilityStatusKey) portabilityStatusKey = 'playlistImportInvalid';
+  playlistImportPreviewData = pendingPlaylistImport;
+  renderPortability();
+});
+document.querySelector('#apply-playlist-import').addEventListener('click', () => {
+  if (!pendingPlaylistImport) return;
+  const theme = pendingPlaylistImport.theme;
+  if (playlistImportModeSelect.value === 'replace' && !confirm(translate('confirmReplacePlaylist', displayThemeName(theme), pendingPlaylistImport.playlist.length))) return;
+  persistState();
+  const current = state.themes[theme].playlist;
+  let next; let added = 0; let skipped = 0;
+  if (playlistImportModeSelect.value === 'replace') {
+    next = [...pendingPlaylistImport.playlist]; added = next.length;
+  } else {
+    next = [...current];
+    for (const movie of pendingPlaylistImport.playlist) { if (next.some(existing => sameMovieRecord(existing, movie))) { skipped++; continue; } next.push(movie); added++; }
+  }
+  if (next.length > 60) { portabilityStatusKey = 'playlistImportLimit'; renderPortability(); return; }
+  state.themes[theme].playlist = next; playlistImportStatusArgs = [added, skipped]; portabilityStatusKey = 'playlistImportDone'; pendingPlaylistImport = null; playlistImportPreviewData = null;
+  activateImportedTheme(theme, true); renderPortability();
+});
+document.querySelector('#export-backup').addEventListener('click', () => downloadJSON(backupPayload(), 'halloween-roulette-backup.json'));
+document.querySelector('#choose-backup-file').addEventListener('click', () => backupFileInput.click());
+backupFileInput.addEventListener('change', async event => {
+  const file = event.target.files?.[0]; event.target.value = '';
+  portabilityStatusKey = ''; pendingBackupImport = null; backupImportPreviewData = null;
+  try { pendingBackupImport = validateBackupPayload(await readImportFile(file)); }
+  catch (error) { portabilityStatusKey = error instanceof RangeError ? 'portabilityFileTooLarge' : 'backupInvalid'; }
+  if (!pendingBackupImport && !portabilityStatusKey) portabilityStatusKey = 'backupInvalid';
+  backupImportPreviewData = pendingBackupImport;
+  renderPortability();
+});
+document.querySelector('#apply-backup-import').addEventListener('click', () => {
+  if (!pendingBackupImport) return;
+  const summary = backupStats(pendingBackupImport);
+  if (!confirm(translate('confirmReplaceBackup', ...summary))) return;
+  state.version = 5; state.activeTheme = pendingBackupImport.activeTheme; state.language = pendingBackupImport.language; state.soundEnabled = pendingBackupImport.soundEnabled; state.themes.halloween = pendingBackupImport.themes.halloween; state.themes.christmas = pendingBackupImport.themes.christmas;
+  activeTheme = state.activeTheme; language = state.language; soundEnabled = state.soundEnabled; themeData = state.themes[activeTheme]; history = themeData.history; viewed = themeData.viewed; avoidViewed = themeData.avoidViewed; currentSession = themeData.sessions.at(-1) ?? null;
+  input.value = themeData.playlist.map(movie => movie.title).join('\n'); themeSelect.value = activeTheme; languageSelect.value = language; portabilityThemeSelect.value = activeTheme;
+  lastResultMovieId = null; lastResultType = 'single'; winningIndex = -1; showAllHistory = false; marathonStatusKey = ''; marathonStatusArgs = []; selectedCollection = 'all'; catalogSearchInput.value = ''; catalogRequestController?.abort(); remoteSearchResults = null; catalogStatusOverride = '';
+  pendingBackupImport = null; backupImportPreviewData = null; portabilityStatusKey = 'backupImported';
+  syncTheme(); updateList(); renderHistory();
+});
+readSharedPlaylist();
 
 const rollSound = new Audio('slot.wav'); rollSound.loop = true; rollSound.volume = 0.25;
 const endSound = new Audio('ding.mp3'); endSound.volume = 0.4;
@@ -940,6 +1265,7 @@ function drawWheel(movies = eligibleRecords()) {
 function updateList() {
   themeData.playlist = reconcilePlaylist(input.value);
   input.value = themeData.playlist.map(movie => movie.title).join('\n');
+  document.querySelector('#generate-share').disabled = themeData.playlist.length === 0;
   lastResultMovieId = null;
   winningIndex = -1;
   document.querySelector('#result').classList.remove('winner', 'reveal');

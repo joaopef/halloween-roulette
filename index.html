@@ -32,6 +32,11 @@
   </header>
   <main>
     <section class="intro"><span class="eyebrow"><i></i><span data-i18n="eyebrow">UMA SESSÃO ESCOLHIDA PELO DESTINO</span></span><h1><span data-i18n="headline1">A noite é tua.</span><br><em data-i18n="headline2">O filme é da sorte.</em></h1><p data-i18n="intro">Entre bruxas, fantasmas e pesadelos. Roda e descobre o que te espera.</p></section>
+    <section class="shared-preview" id="shared-preview" hidden tabindex="-1" aria-labelledby="shared-preview-title" aria-live="polite">
+      <h2 id="shared-preview-title"></h2><p id="shared-preview-summary"></p><ol id="shared-preview-list"></ol>
+      <div class="shared-preview-actions"><button class="text-button primary-action" id="import-shared" type="button"></button><button class="text-button" id="dismiss-shared" type="button"></button></div>
+      <p id="shared-preview-status" role="status"></p>
+    </section>
     <div class="game-layout">
       <section class="play-area" aria-label="Roleta de filmes">
         <div class="wheel-stage"><span class="wheel-caption" data-i18n="wheelCaption">A RODA DOS ARREPIOS</span><div class="wheel-frame"><span class="wheel-lights" aria-hidden="true">✦　✦　✦　✦　✦　✦　✦　✦</span><div class="pointer" aria-hidden="true"></div><canvas id="wheel" width="1000" height="1000" role="img" aria-label="Roleta com os filmes da lista"></canvas><div class="wheel-center" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 13c-8-5-24 1-25 18-2 18 13 26 25 22 12 4 27-4 25-22-1-17-17-23-25-18Z" fill="currentColor"/><path d="m28 13 3-8 8-2-4 11" fill="none" stroke="currentColor" stroke-width="4"/><path d="m15 31 12-6-3 12Zm34 0-12-6 3 12ZM31 32l-4 8h10ZM16 42l8 3 4-3 4 5 5-5 4 3 7-3-5 8H21Z" fill="#160d07"/></svg><small id="wheel-theme-label">HALLOWEEN</small></div></div><span class="wheel-orbit" data-i18n="wheelOrbit">✦ &nbsp; QUE A SORTE TE ASSOMBRE &nbsp; ✦</span></div>
@@ -115,6 +120,34 @@
             </fieldset>
             <button class="text-button primary-action" id="save-metadata" type="button"></button>
             <p id="metadata-status" role="status" aria-live="polite"></p>
+          </div>
+        </details>
+        <details class="advanced-panel sharing-panel" id="sharing-panel">
+          <summary id="sharing-title" data-i18n="sharingTitle">Partilhar playlist</summary>
+          <div class="advanced-body">
+            <p id="sharing-help" class="advanced-help"></p>
+            <button class="text-button primary-action" id="generate-share" type="button"></button>
+            <p id="share-status" role="status" aria-live="polite"></p>
+            <label class="select-filter" id="share-link-label" hidden><span id="share-link-caption"></span><input id="share-link" type="text" readonly></label>
+            <button class="text-button" id="copy-share-link" type="button" hidden></button>
+            <button class="text-button" id="share-file-download" type="button" hidden></button>
+          </div>
+        </details>
+        <details class="advanced-panel portability-panel" id="portability-panel">
+          <summary id="portability-title" data-i18n="portabilityTitle">Importar e exportar</summary>
+          <div class="advanced-body">
+            <p id="portability-help" class="advanced-help"></p>
+            <label class="select-filter"><span id="portability-theme-label"></span><select id="portability-theme"><option value="halloween">Halloween</option><option value="christmas">Christmas</option></select></label>
+            <button class="text-button" id="export-playlist" type="button"></button>
+            <label class="select-filter"><span id="playlist-import-label"></span><select id="playlist-import-mode"><option value="merge">Adicionar filmes sem duplicados</option><option value="replace">Substituir playlist deste tema</option></select></label>
+            <button class="text-button" id="choose-playlist-file" type="button"></button><input class="sr-only" id="playlist-file-input" type="file" accept="application/json,.json" tabindex="-1" aria-hidden="true">
+            <section class="import-preview" id="playlist-import-preview" hidden aria-live="polite"><p id="playlist-import-summary"></p><button class="text-button primary-action" id="apply-playlist-import" type="button"></button></section>
+            <hr>
+            <p id="backup-help" class="advanced-help"></p>
+            <button class="text-button" id="export-backup" type="button"></button>
+            <button class="text-button" id="choose-backup-file" type="button"></button><input class="sr-only" id="backup-file-input" type="file" accept="application/json,.json" tabindex="-1" aria-hidden="true">
+            <section class="import-preview" id="backup-import-preview" hidden aria-live="polite"><p id="backup-import-summary"></p><button class="text-button primary-action" id="apply-backup-import" type="button"></button></section>
+            <p id="portability-status" role="status" aria-live="polite"></p>
           </div>
         </details>
         <section class="history-panel"><div class="history-heading"><div><span class="eyebrow" data-i18n="historyEyebrow">AS SESSÕES PASSADAS</span><h2 id="history-title">Mural da Fama</h2><p id="history-stats"></p></div><button class="text-button" id="clear-history" type="button" data-i18n="clearHistory">Limpar histórico</button></div><p class="history-note" data-i18n="historyNote">Os sorteios ficam guardados apenas neste navegador.</p><ol id="history"></ol><button class="text-button history-toggle" id="history-toggle" type="button" hidden>Mostrar mais</button></section>

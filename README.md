@@ -22,6 +22,16 @@ O filtro de duração máxima exclui filmes sem duração conhecida e informa qu
 
 Uma maratona sorteia um, dois ou três filmes da playlist filtrada, sem repetição dentro da sessão. Se houver menos elegíveis do que o pedido, a roleta informa a quantidade e pergunta se deve sortear os disponíveis. A duração total é apresentada quando todos os filmes têm duração; caso contrário, é identificada como incompleta. Cada filme sorteado incrementa a Wall of Fame uma vez e a sessão mantém a sua ordem. Os vistos podem ser marcados filme a filme sem alterar nenhum dos dois históricos.
 
+## Partilha, importação e cópias de segurança
+
+Os links de partilha usam o fragmento `#playlist=` com JSON em Base64 URL-safe. O objeto tem o formato `{ format: "halloween-roulette-share", version: 1, theme, playlist }`; cada filme contém o `title` original e, quando existe, o ID TMDB. IDs locais são derivados do título original. Não inclui histórico, vistos, duração, idioma, som ou outras preferências. A aplicação só mostra uma pré-visualização; a pessoa escolhe quando importar. A importação acrescenta filmes sem duplicar IDs existentes e não substitui a coleção. Links acima de 1800 caracteres são substituídos por uma opção de transferência JSON.
+
+O ficheiro de playlist é JSON UTF-8 com `{ format: "halloween-roulette-playlist", version: 1, theme, playlist }`. Cada registo usa `id`, `title`, `year`, `runtimeMinutes`, `genres`, `moods`, `overview`, `translatedTitle`, `posterUrl`, `tmdbRating`, `tmdbId`, `imdbId` e `source`; campos sem valor podem ser `null`. A importação só aceita IDs locais canónicos ou IDs TMDB numéricos e cartazes HTTPS do domínio de imagens TMDB. A playlist conserva os títulos originais, IDs estáveis e metadados editoriais existentes. A importação aceita até 60 filmes, mostra uma pré-visualização e permite adicionar os filmes sem duplicados ou substituir apenas a playlist do tema. A substituição exige confirmação e preserva a Wall of Fame, os vistos, os filtros e as sessões.
+
+A cópia de segurança tem `{ format: "halloween-roulette-backup", version: 1, savedAt, data }`, em que `data` contém o estado local completo v5: os dois temas, playlists, históricos, vistos, filtros, sessões e preferências globais de idioma e som. A aplicação valida o ficheiro e apresenta um resumo antes de pedir confirmação para substituir os dados locais. Ficheiros de importação estão limitados a 2 MB. Os dados continuam guardados no navegador; estes ficheiros são a forma manual de os transferir entre dispositivos, sem sincronização automática.
+
+O estado da roleta continua na chave local `cinema-roulette-v5`; os formatos de partilha e transferência não criam novas chaves de armazenamento. As chaves legadas continuam preservadas como cópias de recuperação da migração.
+
 O tema Natal começa com a seleção curada em `movies.js`: 13 comédias, animações e clássicos de diferentes épocas, escolhidos por associação festiva e variedade de estilos. Inclui *The Nightmare Before Christmas*, que também pode pertencer a uma sessão de Halloween. A seleção é um ponto de partida editável, não uma recomendação de adequação etária.
 
 ## Sons
