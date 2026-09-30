@@ -61,6 +61,7 @@ let backupImportPreviewData = null;
 
 const COPY = {
   'pt-PT': {
+    workspaceEyebrow: 'À TUA MEDIDA', workspaceTitle: 'Prepara a noite', tabSession: 'Sessão', tabCollection: 'Coleção', tabHistory: 'Histórico', filmsNoun: 'filmes', workspaceTabs: 'Ferramentas da sessão', drawError: 'Não foi possível concluir o sorteio. Tenta novamente.', findMovies: 'Encontrar filmes',
     pageTitleHalloween: 'Halloween Roulette — O teu próximo filme', pageTitleChristmas: 'Christmas Roulette — O teu próximo filme',
     pageDescriptionHalloween: 'Deixa a sorte escolher o filme de terror desta noite. Uma roleta de Halloween com uma lista de filmes personalizável.', pageDescriptionChristmas: 'Deixa a magia escolher o filme de Natal desta noite. Uma roleta com uma lista de filmes personalizável.',
     brandHalloween: 'HALLOWEEN <b>ROULETTE</b>', brandChristmas: 'CHRISTMAS <b>ROULETTE</b>',
@@ -70,7 +71,7 @@ const COPY = {
     collectionEyebrow: 'A TUA SESSÃO DE CINEMA', collectionTitle: 'Filmes na roleta', collectionSummary: 'possibilidades para esta noite. A tua coleção, pronta a entrar em cena.', editMovies: 'Editar filmes', editorHelp: 'Um filme por linha. Troca, acrescenta ou elimina títulos.', moviesLabel: 'Filmes a incluir na roleta, um por linha', reset: 'Repor a seleção inicial', finishEdit: 'Concluir edição',
     eligibleMovies: count => `${count} ${count === 1 ? 'filme elegível' : 'filmes elegíveis'}`, avoidViewed: 'Evitar filmes já vistos', exhausted: 'Todos os filmes da lista estão marcados como vistos. Podes incluir os vistos ou reiniciar a lista de vistos deste tema.', includeViewed: 'Incluir filmes vistos', resetViewed: 'Reiniciar lista de vistos',
     markViewed: 'Marcar como visto', undoViewed: 'Desmarcar como visto', viewed: 'Visto',
-    filterTitle: 'Filtros da roleta', filterHelp: 'Os filtros aplicam-se apenas aos filmes da tua lista. Se escolheres mais do que uma disposição, basta corresponder a uma.', moodLegend: 'Disposição', moodLight: 'Leve, com ambiente familiar', moodScary: 'Assustador', moodNostalgic: 'Nostálgico',
+    filterTitle: 'Filtros da roleta', filterHelp: 'Os filtros aplicam-se apenas aos filmes da tua lista. Se escolheres mais do que uma disposição, basta corresponder a uma.', moodLegend: 'Disposição', moodLight: 'Leve', moodScary: 'Assustador', moodNostalgic: 'Nostálgico',
     durationLabel: 'Duração máxima', durationAny: 'Qualquer duração', duration90: 'Até 90 min', duration120: 'Até 120 min', duration150: 'Até 150 min', duration180: 'Até 180 min',
     filterStatusUnknown: count => `${count} ${count === 1 ? 'filme' : 'filmes'} sem duração conhecida ficam excluídos pelo limite de tempo. Podes preencher a duração em Metadados dos filmes.`, filterStatusNoMood: count => `${count} ${count === 1 ? 'filme' : 'filmes'} sem disposição ficam excluídos pela seleção atual.`, noFilterMatches: 'Nenhum filme corresponde aos filtros. Limpa ou ajusta os filtros.', clearFilters: 'Limpar filtros',
     surpriseTitle: 'Sessão surpresa', surpriseHelp: 'Sorteia apenas entre os filmes da tua lista que correspondem à disposição e ao tempo escolhidos. Não adiciona nem remove filmes.', surpriseMoodLabel: 'Disposição', surpriseDurationLabel: 'Tempo disponível', surpriseAnyMood: 'Qualquer disposição', surpriseRun: 'Sortear sessão surpresa', surpriseMatches: count => `${count} ${count === 1 ? 'filme corresponde' : 'filmes correspondem'} a estes critérios.`, surpriseNoMatch: 'Não há filmes na tua lista que correspondam a estes critérios. Ajusta os filtros ou descobre filmes.', surpriseDiscover: 'Descobrir filmes',
@@ -89,13 +90,14 @@ const COPY = {
     historyEyebrow: 'AS SESSÕES PASSADAS', wallTitle: 'Mural da Fama', clearHistory: 'Limpar histórico', historyNote: 'Os sorteios ficam guardados apenas neste navegador.',
     historyStats: (movies, draws) => `${movies} ${movies === 1 ? 'filme diferente' : 'filmes diferentes'} · ${draws} ${draws === 1 ? 'sorteio' : 'sorteios'}`,
     historyCount: count => `${count} ${count === 1 ? 'vez' : 'vezes'}`, emptyHistory: 'O teu primeiro filme vai entrar para a história.', more: 'Mostrar mais', less: 'Mostrar menos',
-    ready: 'Lista pronta para rodar', maximum: 'Máximo de 60 filmes', atLeastTwo: 'Adiciona pelo menos 1 filme', chooseRange: 'Adiciona até 60 filmes para começar.', hint: count => `${count} filmes elegíveis. Uma escolha. Tens coragem?`,
+    ready: 'Alterações guardadas neste navegador', maximum: 'Máximo de 60 filmes', atLeastTwo: 'Adiciona pelo menos 1 filme', chooseRange: 'Adiciona até 60 filmes para começar.', hint: () => 'Ajusta a sessão e deixa a sorte escolher.',
     resultIdleLabel: 'O DESTINO ESTÁ À ESPERA', resultIdleTitle: 'O próximo filme é uma surpresa.', resultIdleDescription: 'Roda a roleta para descobrir.',
     spinningLabel: 'A RODAR…', spinningTitle: 'Não espreites. Está quase.', spinningDescription: 'Todos os filmes têm a mesma probabilidade.', resultLabel: 'O FILME DESTA NOITE', resultDescription: 'Apaga as luzes e carrega no play. Boa sessão!', resultHint: 'O destino escolheu. Agora só faltam as pipocas.',
     confirmClearHistory: 'Queres limpar o histórico deste tema neste navegador?', soundOn: 'Desativar som', soundOff: 'Ativar som', playArea: 'Roleta de filmes', canvasLabel: 'Roleta com os filmes da lista', languageLabel: 'Idioma da interface', themeLabel: 'Tema da roleta',
     footerLeft: 'FEITO PARA NOITES QUE NÃO TE DEIXAM DORMIR.', footerRight: 'Boa sessão. Vais precisar de pipocas.'
   },
   en: {
+    workspaceEyebrow: 'MAKE IT YOURS', workspaceTitle: 'Set the scene', tabSession: 'Session', tabCollection: 'Collection', tabHistory: 'History', filmsNoun: 'movies', workspaceTabs: 'Session tools', drawError: 'The draw could not finish. Please try again.', findMovies: 'Find movies',
     pageTitleHalloween: 'Halloween Roulette — Your next movie', pageTitleChristmas: 'Christmas Roulette — Your next movie',
     pageDescriptionHalloween: 'Let fate pick tonight’s spooky movie. A Halloween roulette with a customizable movie list.', pageDescriptionChristmas: 'Let movie magic pick tonight’s Christmas film. A roulette with a customizable movie list.',
     brandHalloween: 'HALLOWEEN <b>ROULETTE</b>', brandChristmas: 'CHRISTMAS <b>ROULETTE</b>', halloween: 'Halloween', christmas: 'Christmas',
@@ -104,7 +106,7 @@ const COPY = {
     collectionEyebrow: 'YOUR MOVIE NIGHT', collectionTitle: 'Movies on the wheel', collectionSummary: 'possibilities for tonight. Your collection is ready for its close-up.', editMovies: 'Edit movies', editorHelp: 'One movie per line. Add, replace or remove titles.', moviesLabel: 'Movies on the wheel, one per line', reset: 'Restore starter selection', finishEdit: 'Done editing',
     eligibleMovies: count => `${count} ${count === 1 ? 'eligible movie' : 'eligible movies'}`, avoidViewed: 'Avoid movies already watched', exhausted: 'Every movie in this collection is marked as watched. Include watched movies or reset this theme’s watched list.', includeViewed: 'Include watched movies', resetViewed: 'Reset watched list',
     markViewed: 'Mark as watched', undoViewed: 'Undo watched status', viewed: 'Watched',
-    filterTitle: 'Roulette filters', filterHelp: 'Filters apply only to movies in your list. If you choose more than one mood, a movie can match any of them.', moodLegend: 'Mood', moodLight: 'Light, family-oriented tone', moodScary: 'Scary', moodNostalgic: 'Nostalgic',
+    filterTitle: 'Roulette filters', filterHelp: 'Filters apply only to movies in your list. If you choose more than one mood, a movie can match any of them.', moodLegend: 'Mood', moodLight: 'Light', moodScary: 'Scary', moodNostalgic: 'Nostalgic',
     durationLabel: 'Maximum runtime', durationAny: 'Any runtime', duration90: 'Up to 90 min', duration120: 'Up to 120 min', duration150: 'Up to 150 min', duration180: 'Up to 180 min',
     filterStatusUnknown: count => `${count} ${count === 1 ? 'movie has' : 'movies have'} no known runtime and are excluded by the time limit. Add a runtime under Movie metadata.`, filterStatusNoMood: count => `${count} ${count === 1 ? 'movie has' : 'movies have'} no mood label and is excluded by the current selection.`, noFilterMatches: 'No movies match these filters. Clear or adjust the filters.', clearFilters: 'Clear filters',
     surpriseTitle: 'Surprise session', surpriseHelp: 'Draw only from movies in your list that match the selected mood and time. This does not add or remove movies.', surpriseMoodLabel: 'Mood', surpriseDurationLabel: 'Time available', surpriseAnyMood: 'Any mood', surpriseRun: 'Draw a surprise session', surpriseMatches: count => `${count} ${count === 1 ? 'movie matches' : 'movies match'} these criteria.`, surpriseNoMatch: 'No movies in your list match these criteria. Adjust the filters or discover movies.', surpriseDiscover: 'Discover movies',
@@ -123,7 +125,7 @@ const COPY = {
     historyEyebrow: 'PAST MOVIE NIGHTS', wallTitle: 'Wall of Fame', clearHistory: 'Clear history', historyNote: 'Draws are stored only in this browser.',
     historyStats: (movies, draws) => `${movies} unique ${movies === 1 ? 'movie' : 'movies'} · ${draws} ${draws === 1 ? 'draw' : 'draws'}`,
     historyCount: count => `${count} ${count === 1 ? 'time' : 'times'}`, emptyHistory: 'Your first movie is waiting to make history.', more: 'Show more', less: 'Show less',
-    ready: 'Ready to spin', maximum: 'Maximum of 60 movies', atLeastTwo: 'Add at least 2 movies', chooseRange: 'Choose between 2 and 60 movies to begin.', hint: count => `${count} movies. One choice. Dare to spin?`,
+    ready: 'Changes saved in this browser', maximum: 'Maximum of 60 movies', atLeastTwo: 'Add at least 1 movie', chooseRange: 'Choose between 2 and 60 movies to begin.', hint: () => 'Set up your session and let fate decide.',
     resultIdleLabel: 'FATE IS WAITING', resultIdleTitle: 'The next movie is a surprise.', resultIdleDescription: 'Spin the wheel to find out.',
     spinningLabel: 'SPINNING…', spinningTitle: 'No peeking. Almost there.', spinningDescription: 'Every movie has an equal chance.', resultLabel: 'TONIGHT’S MOVIE', resultDescription: 'Turn off the lights and press play. Enjoy!', resultHint: 'Fate has chosen. All that’s left is popcorn.',
     confirmClearHistory: 'Clear the history for this theme in this browser?', soundOn: 'Turn sound off', soundOff: 'Turn sound on', playArea: 'Movie roulette', canvasLabel: 'Wheel showing the movies in the list', languageLabel: 'Interface language', themeLabel: 'Roulette theme',
@@ -344,6 +346,7 @@ function renderLanguage() {
   canvas.setAttribute('aria-label', translate('canvasLabel'));
   languageSelect.setAttribute('aria-label', translate('languageLabel'));
   themeSelect.setAttribute('aria-label', translate('themeLabel'));
+  document.querySelector('#workspace-tabs').setAttribute('aria-label', translate('workspaceTabs'));
   themeSelect.options[0].textContent = `🎃 ${translate('halloween')}`;
   themeSelect.options[1].textContent = `🎄 ${translate('christmas')}`;
   document.querySelector('[data-i18n="footerLeft"]').textContent = translate('footerLeft');
@@ -918,9 +921,14 @@ function renderEligibility(redraw = true) {
   const eligible = eligibleRecords();
   if (!spinning && lastResultMovieId) winningIndex = eligible.findIndex(movie => movie.id === lastResultMovieId);
   document.querySelector('#count').textContent = total;
-  document.querySelector('#movie-summary-count').textContent = total;
+  const preview = document.querySelector('#playlist-preview'); preview.replaceChildren();
+  for (const movie of playlistRecords().slice(0, 5)) {
+    const item = document.createElement('li'); item.textContent = movie.title; preview.append(item);
+  }
+
   document.querySelector('#eligible-count').textContent = eligible.length;
   document.querySelector('#eligible-label').textContent = translate('eligibleMovies', eligible.length);
+  document.querySelector('#eligibility-summary').hidden = eligible.length === total;
   avoidViewedInput.checked = avoidViewed;
   const filters = themeData.filters ??= { moods: [], maxDuration: null };
   filterMoodInputs.forEach(input => { input.checked = filters.moods.includes(input.value); });
@@ -1277,6 +1285,8 @@ function updateList() {
   renderEligibility();
 }
 function setEditorOpen(open) {
+  if (open) setWorkspace('collection');
+  document.querySelector('#playlist-preview').hidden = open;
   editor.hidden = !open;
   document.querySelector('#edit-toggle').hidden = open;
   document.querySelector('#edit-toggle').setAttribute('aria-expanded', String(open));
@@ -1285,7 +1295,38 @@ function setEditorOpen(open) {
 document.querySelector('#edit-toggle').addEventListener('click', () => setEditorOpen(true));
 document.querySelector('#finish-edit').addEventListener('click', () => setEditorOpen(false));
 setEditorOpen(false);
+const workspaceNames = ['session', 'collection', 'history'];
+function setWorkspace(name, focus = false) {
+  for (const current of ['session', 'collection', 'history']) {
+    const selected = name === current;
+    const tab = document.querySelector(`#tab-${current}`);
+    tab.setAttribute('aria-selected', String(selected));
+    tab.setAttribute('tabindex', selected ? '0' : '-1');
+    document.querySelector(`#pane-${current}`).hidden = !selected;
+    if (selected && focus) tab.focus();
+  }
+}
+workspaceNames.forEach((name, index) => {
+  const tab = document.querySelector(`#tab-${name}`);
+  tab.addEventListener('click', () => setWorkspace(name));
+  tab.addEventListener('keydown', event => {
+    let next;
+    if (event.key === 'ArrowRight') next = (index + 1) % workspaceNames.length;
+    else if (event.key === 'ArrowLeft') next = (index + workspaceNames.length - 1) % workspaceNames.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = workspaceNames.length - 1;
+    else return;
+    event.preventDefault(); setWorkspace(workspaceNames[next], true);
+  });
+});
+document.querySelector('#collection-shortcut').addEventListener('click', () => setEditorOpen(true));
+document.querySelector('#find-movies').addEventListener('click', () => {
+  const discovery = document.querySelector('#discover-panel'); discovery.open = true;
+  discovery.scrollIntoView?.({ behavior: 'auto', block: 'start' }); catalogSearchInput.focus();
+});
 function setAdvancedControlsDisabled(disabled) {
+  for (const id of ['apply-playlist-import', 'apply-backup-import', 'import-shared', 'reset-viewed', 'include-viewed']) document.querySelector(`#${id}`).disabled = disabled;
+  document.querySelectorAll('.catalog-card button, .session-watch-button').forEach(button => { button.disabled = disabled; });
   avoidViewedInput.disabled = disabled;
   filterMoodInputs.forEach(input => { input.disabled = disabled; });
   durationFilter.disabled = disabled;
@@ -1312,11 +1353,15 @@ function recordSession(movies, kind) {
 }
 function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requestedCount = count) {
   const movies = selectedPool;
-  if (spinning || movies.length < 1 || count < 1 || count > movies.length || playlistRecords().length > 60) return;
+  if (spinning || !Array.isArray(movies) || !movies.length || !Number.isInteger(count) || count < 1 || count > movies.length || playlistRecords().length > 60) return;
+  if (movies.some(movie => !movie || typeof movie.title !== 'string' || typeof movie.id !== 'string')) return;
   spinning = true; spinButton.disabled = true; input.disabled = true; resetButton.disabled = true; setAdvancedControlsDisabled(true);
+  document.querySelector('#collection-shortcut').disabled = true;
   document.querySelector('#edit-toggle').disabled = true; document.querySelector('#finish-edit').disabled = true;
-  document.querySelector('#clear-history').disabled = true; document.querySelector('#history-toggle').disabled = true; themeSelect.disabled = true;
+  document.querySelector('#clear-history').disabled = true; document.querySelector('#history-toggle').disabled = true; themeSelect.disabled = true; languageSelect.disabled = true; watchButton.disabled = true;
   winningIndex = -1;
+  endSound.pause(); endSound.currentTime = 0;
+  rollSound.pause(); rollSound.currentTime = 0;
   if (soundEnabled) { rollSound.currentTime = 0; rollSound.play().catch(() => {}); }
   spinButton.innerHTML = spinIcon + `<span>${translate('spinning')}</span>`;
   document.querySelector('#result-label').textContent = translate('spinningLabel');
@@ -1335,15 +1380,16 @@ function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requ
   return new Promise(resolve => {
     const started = performance.now();
     function frame(now) {
+      try {
       const progress = duration === 0 ? 1 : Math.min(1, (now - started) / duration);
       rotation = start + delta * (1 - Math.pow(1 - progress, 5)); drawWheel(movies);
       if (progress < 1) { requestAnimationFrame(frame); return; }
       rotation %= full; spinning = false; input.disabled = false; resetButton.disabled = false;
+      document.querySelector('#collection-shortcut').disabled = false;
       document.querySelector('#edit-toggle').disabled = false; document.querySelector('#finish-edit').disabled = false;
-      document.querySelector('#clear-history').disabled = false; document.querySelector('#history-toggle').disabled = false; themeSelect.disabled = false;
+      document.querySelector('#clear-history').disabled = false; document.querySelector('#history-toggle').disabled = false; themeSelect.disabled = false; languageSelect.disabled = false; watchButton.disabled = false;
       setAdvancedControlsDisabled(false);
       rollSound.pause(); rollSound.currentTime = 0;
-      if (soundEnabled) { endSound.currentTime = 0; endSound.play().catch(() => {}); }
       winningIndex = winner; drawWheel(movies);
       const selectedMovie = movies[winner];
       for (const movie of sessionMovies) {
@@ -1368,13 +1414,29 @@ function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requ
       document.querySelector('#hint').textContent = translate('resultHint');
       updateSurprisePreview();
       updateMarathonAvailability();
+      if (soundEnabled) { endSound.currentTime = 0; endSound.play().catch(() => {}); }
       resolve({ movie: selectedMovie.title, id: selectedMovie.id });
+      } catch (error) {
+        rollSound.pause(); rollSound.currentTime = 0; endSound.pause(); endSound.currentTime = 0;
+        spinning = false; winningIndex = -1;
+        document.querySelector('#collection-shortcut').disabled = false;
+        input.disabled = false; resetButton.disabled = false; themeSelect.disabled = false; languageSelect.disabled = false; watchButton.disabled = false;
+        for (const id of ['edit-toggle', 'finish-edit', 'clear-history', 'history-toggle']) document.querySelector(`#${id}`).disabled = false;
+        setAdvancedControlsDisabled(false);
+        spinButton.disabled = eligibleRecords().length === 0;
+        spinButton.innerHTML = spinIcon + `<span>${translate('spin')}</span>`;
+        document.querySelector('#result-title').textContent = translate('drawError');
+        document.querySelector('#result-label').textContent = translate('resultIdleLabel');
+        document.querySelector('#result-description').textContent = '';
+        console.error('Movie draw failed', error);
+        resolve({ error: true });
+      }
     }
     requestAnimationFrame(frame);
   });
 }
 input.addEventListener('input', updateList);
-spinButton.addEventListener('click', spin);
+spinButton.addEventListener('click', () => spin());
 resetButton.addEventListener('click', () => { if (!spinning) { input.value = activeTheme === 'christmas' ? CHRISTMAS_MOVIES.join('\n') : DEFAULT_MOVIES.join('\n'); updateList(); } });
 soundButton.addEventListener('click', () => setSound(!soundEnabled));
 languageSelect.value = language;

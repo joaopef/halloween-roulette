@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import tmdbProxy, { CinemaRateLimiter } from './tmdb-proxy/worker.mjs';
 
-const i18nKeys = ['eyebrow', 'headline1', 'headline2', 'intro', 'wheelCaption', 'spin', 'collectionEyebrow', 'collectionTitle', 'collectionSummary', 'editMovies', 'editorHelp', 'moviesLabel', 'reset', 'finishEdit', 'filterTitle', 'surpriseTitle', 'metadataTitle', 'sharingTitle', 'portabilityTitle', 'historyEyebrow', 'clearHistory', 'historyNote', 'footerLeft', 'footerRight'];
+const i18nKeys = ['workspaceEyebrow', 'workspaceTitle', 'tabSession', 'tabCollection', 'tabHistory', 'filmsNoun', 'findMovies', 'eyebrow', 'headline1', 'headline2', 'intro', 'wheelCaption', 'spin', 'collectionEyebrow', 'collectionTitle', 'collectionSummary', 'editMovies', 'editorHelp', 'moviesLabel', 'reset', 'finishEdit', 'filterTitle', 'surpriseTitle', 'metadataTitle', 'sharingTitle', 'portabilityTitle', 'historyEyebrow', 'clearHistory', 'historyNote', 'footerLeft', 'footerRight'];
 
 async function createApp(seed = {}, options = {}) {
   const nodes = new Map();
@@ -52,7 +52,7 @@ const app = await createApp();
 const { node, storage, audios, animationFrames, sandbox } = app;
 const evaluate = expression => vm.runInContext(expression, sandbox);
 assert.equal(node('#count').textContent, 19);
-assert.equal(node('#movie-summary-count').textContent, 19);
+assert.equal(node('#eligibility-summary').hidden, true, 'do not repeat the total when every movie is eligible');
 assert.equal(node('#movie-editor').hidden, true);
 assert.equal(node('#edit-toggle').getAttribute('aria-expanded'), 'false');
 assert.equal(node('#sound').getAttribute('aria-pressed'), 'true');
@@ -103,7 +103,11 @@ assert.equal(node('#sound').getAttribute('aria-label'), 'Turn sound on');
 assert.equal(JSON.parse(storage.get('cinema-roulette-v5')).soundEnabled, false);
 node('#sound').dispatch('click');
 assert.equal(JSON.parse(storage.get('cinema-roulette-v5')).soundEnabled, true);
-const pendingSpin = evaluate('spin()');
+const pendingSpin = node('#spin').dispatch('click');
+assert.equal(evaluate('spin({type: "click"})'), undefined, 'an event is not a movie pool');
+const audioStarts = audios[0].playCount;
+node('#spin').dispatch('click');
+assert.equal(audios[0].playCount, audioStarts, 'repeated clicks cannot restart audio or create another draw');
 assert.equal(animationFrames.length, 1);
 assert.equal(audios[0].paused, false, 'roll sound starts during spin when enabled');
 assert.equal(node('#movies').disabled, true); assert.equal(node('#reset').disabled, true);
@@ -115,6 +119,7 @@ assert.equal(audios[0].paused, false, 'reenabling sound resumes the wheel while 
 assert.equal(node('#theme').disabled, true, 'theme cannot change in the middle of a spin');
 app.setNow(10000); animationFrames.shift()(10000);
 const result = await pendingSpin;
+assert.equal(audios[1].playCount, 2, 'one ending chime per completed draw, including the preceding single-film draw');
 assert.ok(['A', 'B'].includes(result.movie));
 assert.equal(node('#result-title').textContent, result.movie);
 assert.equal(JSON.parse(storage.get('cinema-roulette-v5')).themes.halloween.sessions.length, 2, 'each standard spin is recorded as a one-film session');

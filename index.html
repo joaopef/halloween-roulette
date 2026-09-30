@@ -44,23 +44,16 @@
         <div class="result" id="result" aria-live="polite" aria-atomic="true"><span class="result-icon" aria-hidden="true">☾</span><div class="result-content"><span class="eyebrow" id="result-label">O DESTINO ESTÁ À ESPERA</span><h3 id="result-title">O próximo filme é uma surpresa.</h3><p id="result-description">Roda a roleta para descobrir.</p><button class="text-button watch-toggle" id="watch-toggle" type="button" hidden>Marcar como visto</button></div></div>
         <p class="hint" id="hint">19 filmes. Uma escolha. Tens coragem?</p>
       </section>
-      <div class="side-panels">
-        <aside class="panel collection-panel">
-          <div class="panel-heading"><div><span class="eyebrow" data-i18n="collectionEyebrow">A TUA SESSÃO DE CINEMA</span><h2 data-i18n="collectionTitle">Filmes na roleta</h2></div><span class="count" id="count">19</span></div>
-          <p class="panel-description"><strong id="movie-summary-count">19</strong> <span data-i18n="collectionSummary">possibilidades para esta noite. A tua coleção, pronta a entrar em cena.</span></p>
-          <p class="eligibility-summary" id="eligibility-summary" role="status" aria-live="polite"><strong id="eligible-count">19</strong> <span id="eligible-label">filmes elegíveis</span></p>
-          <div class="exhausted-actions" id="exhausted-actions" hidden><p id="exhausted-message"></p><button class="text-button" id="include-viewed" type="button">Incluir filmes vistos</button><button class="text-button" id="reset-viewed" type="button">Reiniciar lista de vistos</button></div>
-          <button class="text-button edit-toggle" id="edit-toggle" type="button" aria-expanded="false" aria-controls="movie-editor" data-i18n="editMovies">Editar filmes</button>
-          <div id="movie-editor" hidden>
-            <p class="panel-description" data-i18n="editorHelp">Um filme por linha. Troca, acrescenta ou elimina títulos.</p>
-            <label class="sr-only" for="movies" data-i18n="moviesLabel">Filmes a incluir na roleta, um por linha</label>
-            <textarea id="movies" spellcheck="false" rows="12" maxlength="8000"></textarea>
-            <div class="editor-actions"><button class="text-button" id="reset" type="button" data-i18n="reset">Repor a seleção inicial</button></div>
-          </div>
-          <div class="list-footer"><span id="list-status" role="status">Lista pronta para rodar</span></div>
-          <button class="text-button finish-edit" id="finish-edit" type="button" hidden data-i18n="finishEdit">Concluir edição</button>
-        </aside>
-        <details class="advanced-panel filter-panel" id="filter-panel">
+      <div class="side-panels session-workspace">
+        <div class="workspace-heading"><div><span class="eyebrow" data-i18n="workspaceEyebrow">À TUA MEDIDA</span><h2 data-i18n="workspaceTitle">Prepara a noite</h2></div><button type="button" class="collection-shortcut" id="collection-shortcut"><span id="count">19</span> <span data-i18n="filmsNoun">filmes</span></button></div>
+        <div class="workspace-tabs" role="tablist" aria-label="Ferramentas da sessão" id="workspace-tabs">
+          <button role="tab" id="tab-session" aria-controls="pane-session" aria-selected="true" tabindex="0" data-workspace-tab="session" data-i18n="tabSession">Sessão</button>
+          <button role="tab" id="tab-collection" aria-controls="pane-collection" aria-selected="false" tabindex="-1" data-workspace-tab="collection" data-i18n="tabCollection">Coleção</button>
+          <button role="tab" id="tab-history" aria-controls="pane-history" aria-selected="false" tabindex="-1" data-workspace-tab="history" data-i18n="tabHistory">Histórico</button>
+        </div>
+        <p class="eligibility-summary" id="eligibility-summary" role="status" hidden><span id="eligible-count" hidden>19</span><span id="eligible-label"></span></p>
+        <section id="pane-session" role="tabpanel" aria-labelledby="tab-session" data-workspace-pane="session">
+          <details class="advanced-panel filter-panel" id="filter-panel" open>
           <summary id="filter-title" data-i18n="filterTitle">Filtros</summary>
           <div class="advanced-body">
             <p id="filter-help" class="advanced-help"></p>
@@ -76,18 +69,7 @@
             <button class="text-button clear-filters" id="clear-filters" type="button"></button>
           </div>
         </details>
-        <details class="advanced-panel surprise-panel" id="surprise-panel">
-          <summary id="surprise-title" data-i18n="surpriseTitle">Sessão surpresa</summary>
-          <div class="advanced-body">
-            <p id="surprise-help" class="advanced-help"></p>
-            <label class="select-filter"><span id="surprise-mood-label"></span><select id="surprise-mood"></select></label>
-            <label class="select-filter"><span id="surprise-duration-label"></span><select id="surprise-duration"></select></label>
-            <button class="text-button primary-action" id="surprise-submit" type="button"></button>
-            <p id="surprise-status" role="status" aria-live="polite"></p>
-            <button class="text-button" id="surprise-discover" type="button" hidden></button>
-          </div>
-        </details>
-        <details class="advanced-panel marathon-panel" id="marathon-panel">
+          <details class="advanced-panel marathon-panel" id="marathon-panel">
           <summary id="marathon-title" data-i18n="marathonTitle">Movie marathon</summary>
           <div class="advanced-body">
             <p id="marathon-help" class="advanced-help"></p>
@@ -99,14 +81,40 @@
               <ol id="marathon-order"></ol>
               <p id="marathon-total"></p>
             </section>
-            <section class="session-history-section">
-              <h3 id="session-history-title"></h3>
-              <p id="session-history-empty" hidden></p>
-              <ol id="session-history" aria-live="polite"></ol>
-            </section>
+
           </div>
         </details>
-        <details class="advanced-panel metadata-panel" id="metadata-panel">
+          <details class="advanced-panel surprise-panel" id="surprise-panel">
+          <summary id="surprise-title" data-i18n="surpriseTitle">Sessão surpresa</summary>
+          <div class="advanced-body">
+            <p id="surprise-help" class="advanced-help"></p>
+            <label class="select-filter"><span id="surprise-mood-label"></span><select id="surprise-mood"></select></label>
+            <label class="select-filter"><span id="surprise-duration-label"></span><select id="surprise-duration"></select></label>
+            <button class="text-button primary-action" id="surprise-submit" type="button"></button>
+            <p id="surprise-status" role="status" aria-live="polite"></p>
+            <button class="text-button" id="surprise-discover" type="button" hidden></button>
+          </div>
+        </details>
+        </section>
+        <section id="pane-collection" role="tabpanel" aria-labelledby="tab-collection" data-workspace-pane="collection" hidden>
+          <aside class="panel collection-panel">
+
+
+
+          <div class="exhausted-actions" id="exhausted-actions" hidden><p id="exhausted-message"></p><button class="text-button" id="include-viewed" type="button">Incluir filmes vistos</button><button class="text-button" id="reset-viewed" type="button">Reiniciar lista de vistos</button></div>
+          <button class="text-button edit-toggle" id="edit-toggle" type="button" aria-expanded="false" aria-controls="movie-editor" data-i18n="editMovies">Editar filmes</button>
+          <ul id="playlist-preview" class="playlist-preview"></ul>
+          <button class="text-button" id="find-movies" type="button" data-i18n="findMovies">Encontrar filmes</button>
+          <div id="movie-editor" hidden>
+            <p class="panel-description" data-i18n="editorHelp">Um filme por linha. Troca, acrescenta ou elimina títulos.</p>
+            <label class="sr-only" for="movies" data-i18n="moviesLabel">Filmes a incluir na roleta, um por linha</label>
+            <textarea id="movies" spellcheck="false" rows="12" maxlength="8000"></textarea>
+            <div class="editor-actions"><button class="text-button" id="reset" type="button" data-i18n="reset">Repor a seleção inicial</button></div>
+          </div>
+          <div class="list-footer"><span id="list-status" role="status">Lista pronta para rodar</span></div>
+          <button class="text-button finish-edit" id="finish-edit" type="button" hidden data-i18n="finishEdit">Concluir edição</button>
+        </aside>
+          <details class="advanced-panel metadata-panel" id="metadata-panel">
           <summary id="metadata-title" data-i18n="metadataTitle">Metadados dos filmes</summary>
           <div class="advanced-body">
             <p id="metadata-help" class="advanced-help"></p>
@@ -122,7 +130,7 @@
             <p id="metadata-status" role="status" aria-live="polite"></p>
           </div>
         </details>
-        <details class="advanced-panel sharing-panel" id="sharing-panel">
+          <details class="advanced-panel sharing-panel" id="sharing-panel">
           <summary id="sharing-title" data-i18n="sharingTitle">Partilhar playlist</summary>
           <div class="advanced-body">
             <p id="sharing-help" class="advanced-help"></p>
@@ -133,7 +141,7 @@
             <button class="text-button" id="share-file-download" type="button" hidden></button>
           </div>
         </details>
-        <details class="advanced-panel portability-panel" id="portability-panel">
+          <details class="advanced-panel portability-panel" id="portability-panel">
           <summary id="portability-title" data-i18n="portabilityTitle">Importar e exportar</summary>
           <div class="advanced-body">
             <p id="portability-help" class="advanced-help"></p>
@@ -150,8 +158,18 @@
             <p id="portability-status" role="status" aria-live="polite"></p>
           </div>
         </details>
-        <section class="history-panel"><div class="history-heading"><div><span class="eyebrow" data-i18n="historyEyebrow">AS SESSÕES PASSADAS</span><h2 id="history-title">Mural da Fama</h2><p id="history-stats"></p></div><button class="text-button" id="clear-history" type="button" data-i18n="clearHistory">Limpar histórico</button></div><p class="history-note" data-i18n="historyNote">Os sorteios ficam guardados apenas neste navegador.</p><ol id="history"></ol><button class="text-button history-toggle" id="history-toggle" type="button" hidden>Mostrar mais</button></section>
-        <details class="discovery-panel" id="discover-panel">
+        </section>
+        <section id="pane-history" role="tabpanel" aria-labelledby="tab-history" data-workspace-pane="history" hidden>
+          <section class="history-panel"><div class="history-heading"><div><span class="eyebrow" data-i18n="historyEyebrow">AS SESSÕES PASSADAS</span><h2 id="history-title">Mural da Fama</h2><p id="history-stats"></p></div><button class="text-button" id="clear-history" type="button" data-i18n="clearHistory">Limpar histórico</button></div><p class="history-note" data-i18n="historyNote">Os sorteios ficam guardados apenas neste navegador.</p><ol id="history"></ol><button class="text-button history-toggle" id="history-toggle" type="button" hidden>Mostrar mais</button></section>
+          <section class="session-history-section">
+              <h3 id="session-history-title"></h3>
+              <p id="session-history-empty" hidden></p>
+              <ol id="session-history" aria-live="polite"></ol>
+            </section>
+        </section>
+      </div>
+    </div>
+    <details class="discovery-panel" id="discover-panel">
           <summary id="discover-summary" data-i18n="discoverTitle">Descobrir filmes</summary>
           <div class="discover-body">
             <p class="discover-intro" id="discover-intro"></p>
@@ -173,8 +191,6 @@
             <aside class="tmdb-attribution" id="tmdb-attribution" hidden aria-label="Atribuição TMDB"><a href="https://www.themoviedb.org/about/logos-attribution" target="_blank" rel="noreferrer" class="tmdb-logo-link"><img id="tmdb-logo" alt="The Movie Database (TMDB)" hidden></a><p id="tmdb-notice"></p></aside>
           </div>
         </details>
-      </div>
-    </div>
   </main>
   <footer><span data-i18n="footerLeft">FEITO PARA NOITES QUE NÃO TE DEIXAM DORMIR.</span><span><span data-i18n="footerRight">Boa sessão. Vais precisar de pipocas.</span> <span aria-hidden="true">✦</span></span></footer>
 </body>
