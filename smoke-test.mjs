@@ -14,7 +14,7 @@ async function createApp(seed = {}, options = {}) {
   function makeElement(selector) {
     const classes = new Set();
     const value = selector.match(/#(?:filter|metadata)-mood-(light|scary|nostalgic)$/)?.[1] ?? (selector === '#marathon-count' ? '3' : selector === '#draw-mode' ? 'wheel' : selector === '#draw-pace' ? 'fast' : '');
-    const options = ['#theme', '#portability-theme'].includes(selector) ? [{ textContent: '', value: 'halloween' }, { textContent: '', value: 'christmas' }] : selector === '#draw-mode' ? ['wheel', 'doors', 'shuffle'].map(value => ({ value, textContent: '' })) : selector === '#draw-pace' ? ['fast', 'suspense'].map(value => ({ value, textContent: '' })) : selector === '#playlist-import-mode' ? [{ textContent: '', value: 'merge' }, { textContent: '', value: 'replace' }] : selector === '#filter-duration' ? ['any', '90', '120', '150', '180'].map(value => ({ value, textContent: '' })) : [];
+    const options = ['#theme', '#portability-theme'].includes(selector) ? [{ textContent: '', value: 'halloween' }, { textContent: '', value: 'christmas' }] : selector === '#draw-mode' ? ['wheel', 'doors', 'shuffle', 'posters'].map(value => ({ value, textContent: '' })) : selector === '#draw-pace' ? ['fast', 'suspense'].map(value => ({ value, textContent: '' })) : selector === '#playlist-import-mode' ? [{ textContent: '', value: 'merge' }, { textContent: '', value: 'replace' }] : selector === '#filter-duration' ? ['any', '90', '120', '150', '180'].map(value => ({ value, textContent: '' })) : [];
     const element = { selector, value, textContent: '', innerHTML: '', disabled: false, checked: false, hidden: false, children: [], attributes: {}, listeners: {}, style: {}, dataset: {}, options, files: [], classList: { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, toggle(name, force) { if (force ?? !classes.has(name)) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) }, addEventListener(type, fn) { this.listeners[type] = fn; }, dispatch(type) { return this.listeners[type]?.({ target: this, preventDefault() {} }); }, setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name] ?? null; }, removeAttribute(name) { delete this.attributes[name]; }, replaceChildren(...items) { this.children = items; if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options = []; }, append(...items) { this.children.push(...items); if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options.push(...items); }, querySelector(query) { const value = query.match(/\[value="([^"]+)"\]/)?.[1]; return this.options.find(option => option.value === value) ?? null; }, focus() { this.focused = true; }, click() { this.clicked = true; if (this.download) downloadNames.push(this.download); }, remove() { this.removed = true; } };
     element.firstElementChild = { style: {} };
     return element;
@@ -606,6 +606,8 @@ for (const count of [1, 2, 3, 9]) {
   const historyBeforeDoors = JSON.stringify(vm.runInContext('history', modeApp.sandbox));
   assert.equal(JSON.stringify(vm.runInContext('history', modeApp.sandbox)), historyBeforeDoors, 'preparing mystery doors does not record a draw');
   const reveal = doors[0].dispatch('click');
+  assert.equal(modeApp.audios[0].playCount, 0, 'doors never start the wheel sound');
+  assert.equal(modeApp.audios.slice(2).reduce((total, audio) => total + audio.playCount, 0), 1, 'one creature effect starts on opening a door');
   modeApp.animationFrames.shift()(0);
   const picked = await reveal;
   assert.equal(modeApp.node('#result-title').textContent, picked.movie, 'door result card matches the drawn title');
@@ -613,6 +615,7 @@ for (const count of [1, 2, 3, 9]) {
   assert.equal(vm.runInContext('themeData.sessions.length', modeApp.sandbox), 1, 'opening a door records exactly one result');
   assert.equal(doors[0].getAttribute('aria-label').includes(picked.movie), true, 'the selected door reveals its title');
   assert.equal(doors[0].children.some(child => child.textContent === picked.movie), true, 'the selected door shows the movie title visually');
+  assert.equal(modeApp.audios[1].playCount, 0, 'doors do not play the wheel completion ding');
   assert.equal(doors.slice(1).some(door => door.getAttribute('aria-label').includes(picked.movie)), false, 'other doors stay closed without revealing a title');
   assert.equal(vm.runInContext('themeData.sessions.at(-1).movies[0].id', modeApp.sandbox), picked.id, 'door result and session history use the same movie');
 }
@@ -631,7 +634,7 @@ assert.equal(shuffleApp.node('#shuffle-ticker').children[0].textContent, shuffle
 assert.equal(shuffleApp.node('#shuffle-ticker').style.transform, 'translateY(-50%)');
 assert.ok(shuffleApp.node('#spin').innerHTML.includes('Sortear outro filme'));
 assert.equal(vm.runInContext('themeData.sessions.length', shuffleApp.sandbox), 1, 'title shuffle records exactly once');
-for (const mode of ['wheel', 'shuffle']) for (const count of [1, 2, 3, 9]) {
+for (const mode of ['wheel', 'shuffle', 'posters']) for (const count of [1, 2, 3, 9]) {
   const drawApp = await createApp(); drawApp.setReduceMotion(true);
   drawApp.node('#movies').value = Array.from({ length: count }, (_, index) => `Manual title ${index + 1} with possible missing artwork`).join('\n');
   drawApp.node('#movies').dispatch('input');
@@ -639,8 +642,31 @@ for (const mode of ['wheel', 'shuffle']) for (const count of [1, 2, 3, 9]) {
   const pendingDraw = drawApp.node('#spin').dispatch('click'); drawApp.animationFrames.shift()(0);
   const outcome = await pendingDraw;
   assert.equal(drawApp.node('#result-title').textContent, outcome.movie, `${mode} result matches the selected movie with ${count} eligible`);
+  if (mode === 'posters') {
+    assert.equal(drawApp.node('#poster-strip').children.length, 1, 'poster shuffle leaves one winning poster');
+    assert.equal(drawApp.node('#poster-strip').children[0].dataset.movieId, outcome.id, 'winning artwork matches the recorded movie, including missing posters');
+  }
   assert.equal(vm.runInContext('themeData.sessions.at(-1).movies.length', drawApp.sandbox), 1, `${mode} records one movie with ${count} eligible`);
 }
+const animatedPosters = await createApp();
+animatedPosters.node('#draw-mode').value = 'posters'; animatedPosters.node('#draw-mode').dispatch('change');
+const posterDraw = animatedPosters.node('#spin').dispatch('click');
+animatedPosters.animationFrames.shift()(700);
+assert.equal(animatedPosters.node('#poster-strip').children.length, 3, 'normal motion shows three poster tiles during the draw');
+animatedPosters.animationFrames.shift()(1500);
+const posterWinner = await posterDraw;
+assert.equal(animatedPosters.node('#poster-strip').children[0].dataset.movieId, posterWinner.id);
+assert.equal(animatedPosters.node('#poster-strip').children[0].children[0].children[1].src.startsWith('https://image.tmdb.org/'), true, 'starter winner uses a TMDB poster');
+const restoredPosters = await createApp(Object.fromEntries([...animatedPosters.storage].map(([key, raw]) => [key, JSON.parse(raw)])));
+assert.equal(restoredPosters.node('#draw-mode').value, 'posters', 'poster mode survives reload');
+const mutedDoors = await createApp();
+mutedDoors.node('#draw-mode').value = 'doors'; mutedDoors.node('#draw-mode').dispatch('change');
+mutedDoors.node('#spin').dispatch('click');
+const mutedDoorDraw = mutedDoors.node('#doors').children[0].dispatch('click');
+mutedDoors.node('#sound').dispatch('click');
+assert.equal(mutedDoors.audios.every(audio => audio.paused), true, 'mute immediately stops every door and wheel sound');
+mutedDoors.animationFrames.shift()(1500); await mutedDoorDraw;
+assert.equal(mutedDoors.audios[1].playCount, 0, 'muted door result remains silent');
 const noMatchesApp = await createApp();
 noMatchesApp.node('#movies').value = 'A Manual Title With No Mood Metadata'; noMatchesApp.node('#movies').dispatch('input');
 noMatchesApp.node('#draw-mode').value = 'doors'; noMatchesApp.node('#draw-mode').dispatch('change');

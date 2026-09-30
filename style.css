@@ -181,6 +181,23 @@ body[data-theme="halloween"] .wheel-caption::after { right: 9px; }
 .shuffle-display #shuffle-ticker.is-settled { color: #ffd59b; font-size: clamp(19px, 2.4vw, 28px); text-shadow: 0 0 18px #f4841844; }
 .shuffle-display #shuffle-ticker.is-settled span { height: auto; min-height: 96px; padding: 16px 20px; }
 .shuffle-current { color: #bb9363; font: 700 10px/1.5 'DM Sans', sans-serif; letter-spacing: 1.5px; }
+.poster-stage { min-height: 440px; padding: 16px 14px 20px; background: radial-gradient(ellipse at 50% 65%, #a24f2344, transparent 65%), #130e0bf2; }
+.poster-stage .shuffle-marquee { margin: 0; }
+.poster-strip { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 354px; padding: 20px 0 12px; }
+.poster-slide { flex: 0 0 110px; min-width: 0; opacity: .45; transform: rotate(-6deg) scale(.93); }
+.poster-slide:last-child:not(.is-current) { transform: rotate(6deg) scale(.93); }
+.poster-slide.is-current { flex-basis: 190px; opacity: 1; transform: none; }
+.poster-slide .movie-poster { border: 1px solid #ad6939; border-radius: 7px; box-shadow: 0 10px 25px #0009; }
+.poster-slide.is-current .movie-poster { border-color: #ffb664; box-shadow: 0 0 0 3px #f79a3622, 0 0 30px #e57c302f, 0 15px 35px #000b; }
+.poster-slide p { margin: 10px 0 0; color: #f8d7ac; font: 600 14px/1.35 'DM Sans', sans-serif; text-align: center; overflow-wrap: anywhere; }
+.poster-slide:not(.is-current) p { display: none; }
+.poster-strip.is-settled .is-current { animation: poster-reveal .35s ease-out; }
+.poster-slide .poster-fallback { justify-content: center; text-align: center; padding: 12px; }
+.poster-slide .poster-fallback span { font-size: 50px; color: #ffa440; opacity: 1; }
+.poster-slide .poster-fallback strong { font-size: 20px; }
+@keyframes poster-reveal { from { opacity: .5; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+@media (max-width: 650px) { .poster-stage { min-height: 375px; } .poster-strip { min-height: 285px; gap: 8px; } .poster-slide { flex-basis: 64px; } .poster-slide.is-current { flex-basis: 148px; } .poster-slide .poster-fallback strong { font-size: 17px; } }
+@media (prefers-reduced-motion: reduce) { .poster-strip.is-settled .is-current { animation: none; } }
 #doors-stage { background: radial-gradient(ellipse at 50% 90%, #b455222e, transparent 60%), repeating-linear-gradient(0deg, transparent 0 34px, #0005 35px 37px), repeating-linear-gradient(90deg, #26201b 0 56px, #15120f 57px 59px); border-color: #6f4b31; }
 .mansion { height: 64px; font-size: 60px; color: #d9a86d; }
 .mystery-door { border: 0; border-radius: 50% 50% 0 0; height: 225px; background: url('haunted-door.svg') center/100% 100% no-repeat; box-shadow: 0 10px 12px #0008; }

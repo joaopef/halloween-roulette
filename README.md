@@ -36,7 +36,9 @@ O tema Natal começa com a seleção curada em `movies.js`: 13 comédias, anima�
 
 ## Sons
 
-A aplicação usa apenas os efeitos de rotação e de fim (`slot.wav` e `ding.mp3`) já presentes no projeto. Não inicia som automaticamente nem acrescenta música ambiente. O repositório não contém registos de origem ou licença dos dois ficheiros; confirma esses registos antes de redistribuir os efeitos fora do projeto existente.
+A roleta e os shuffles usam os efeitos de rotação e de fim (`slot.wav` e `ding.mp3`) já presentes no projeto. As portas usam apenas um dos três efeitos originais sintetizados (`door-zombie.wav`, `door-witch.wav`, `door-ghost.wav`), com ranger de madeira e uma criatura diferente por porta. Não contêm amostras do Minecraft nem vozes gravadas; podem ser regenerados com `node generate-door-sounds.mjs`. O botão de som controla todos os modos e nada toca automaticamente. O repositório não contém registos de origem ou licença dos dois efeitos antigos.
+
+Halloween oferece quatro modos de sorteio: roleta, portas misteriosas, shuffle de títulos e shuffle de cartazes. Partilham os filtros, a escolha aleatória e o histórico. O shuffle de cartazes mantém elegíveis os filmes sem imagem, mostrando uma capa com o título; uma imagem que falhe também usa essa alternativa. O resultado final corresponde sempre ao cartaz central. O modo respeita o movimento reduzido e fica guardado nas preferências do tema.
 
 ## Catálogo online
 

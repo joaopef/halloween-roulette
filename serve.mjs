@@ -5,6 +5,7 @@ http.createServer(async (req, res) => {
   files['/halloween-landscape.svg'] = ['halloween-landscape.svg', 'image/svg+xml'];
   files['/haunted-wheel.svg'] = ['haunted-wheel.svg', 'image/svg+xml'];
   files['/haunted-door.svg'] = ['haunted-door.svg', 'image/svg+xml'];
+  for (const creature of ['zombie', 'witch', 'ghost']) files[`/door-${creature}.wav`] = [`door-${creature}.wav`, 'audio/wav'];
   const file = files[new URL(req.url, 'http://localhost').pathname];
   if (!file) { res.writeHead(404); res.end('Not found'); return; }
   try { const content = await readFile(new URL(file[0], import.meta.url)); res.writeHead(200, { 'Content-Type': file[1] }); res.end(content); }
