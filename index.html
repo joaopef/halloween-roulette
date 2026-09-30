@@ -82,6 +82,25 @@
             <button class="text-button" id="surprise-discover" type="button" hidden></button>
           </div>
         </details>
+        <details class="advanced-panel marathon-panel" id="marathon-panel">
+          <summary id="marathon-title" data-i18n="marathonTitle">Movie marathon</summary>
+          <div class="advanced-body">
+            <p id="marathon-help" class="advanced-help"></p>
+            <label class="select-filter"><span id="marathon-count-label"></span><select id="marathon-count"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option></select></label>
+            <button class="text-button primary-action" id="marathon-submit" type="button"></button>
+            <p id="marathon-status" role="status" aria-live="polite"></p>
+            <section class="marathon-result" id="marathon-result" hidden aria-live="polite">
+              <h3 id="marathon-order-title"></h3>
+              <ol id="marathon-order"></ol>
+              <p id="marathon-total"></p>
+            </section>
+            <section class="session-history-section">
+              <h3 id="session-history-title"></h3>
+              <p id="session-history-empty" hidden></p>
+              <ol id="session-history" aria-live="polite"></ol>
+            </section>
+          </div>
+        </details>
         <details class="advanced-panel metadata-panel" id="metadata-panel">
           <summary id="metadata-title" data-i18n="metadataTitle">Metadados dos filmes</summary>
           <div class="advanced-body">

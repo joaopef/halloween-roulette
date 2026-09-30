@@ -16,13 +16,15 @@ const metadataRuntimeInput = document.querySelector('#metadata-runtime');
 const metadataMoodInputs = ['light', 'scary', 'nostalgic'].map(mood => document.querySelector(`#metadata-mood-${mood}`));
 const surpriseMoodSelect = document.querySelector('#surprise-mood');
 const surpriseDurationSelect = document.querySelector('#surprise-duration');
+const marathonCountSelect = document.querySelector('#marathon-count');
 const catalogSearchForm = document.querySelector('#catalog-search-form');
 const catalogSearchInput = document.querySelector('#catalog-search');
 const catalogResults = document.querySelector('#catalog-results');
 const relatedResults = document.querySelector('#related-results');
 const spinIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg>';
-const STORAGE_KEY = 'cinema-roulette-v4';
-const PREVIOUS_STORAGE_KEY = 'cinema-roulette-v3';
+const STORAGE_KEY = 'cinema-roulette-v5';
+const PREVIOUS_STORAGE_KEY = 'cinema-roulette-v4';
+const PREVIOUS_V3_STORAGE_KEY = 'cinema-roulette-v3';
 const LEGACY_STORAGE_KEY = 'cinema-roulette-v2';
 const HISTORY_LIMIT = 5;
 let rotation = 0;
@@ -35,6 +37,10 @@ let remoteSearchResults = null;
 let catalogRequestController = null;
 let catalogStatusOverride = '';
 let metadataStatusKey = '';
+let currentSession = null;
+let lastResultType = 'single';
+let marathonStatusKey = '';
+let marathonStatusArgs = [];
 
 const COPY = {
   'pt-PT': {
@@ -51,6 +57,7 @@ const COPY = {
     durationLabel: 'Duração máxima', durationAny: 'Qualquer duração', duration90: 'Até 90 min', duration120: 'Até 120 min', duration150: 'Até 150 min', duration180: 'Até 180 min',
     filterStatusUnknown: count => `${count} ${count === 1 ? 'filme' : 'filmes'} sem duração conhecida ficam excluídos pelo limite de tempo. Podes preencher a duração em Metadados dos filmes.`, filterStatusNoMood: count => `${count} ${count === 1 ? 'filme' : 'filmes'} sem disposição ficam excluídos pela seleção atual.`, noFilterMatches: 'Nenhum filme corresponde aos filtros. Limpa ou ajusta os filtros.', clearFilters: 'Limpar filtros',
     surpriseTitle: 'Sessão surpresa', surpriseHelp: 'Sorteia apenas entre os filmes da tua lista que correspondem à disposição e ao tempo escolhidos. Não adiciona nem remove filmes.', surpriseMoodLabel: 'Disposição', surpriseDurationLabel: 'Tempo disponível', surpriseAnyMood: 'Qualquer disposição', surpriseRun: 'Sortear sessão surpresa', surpriseMatches: count => `${count} ${count === 1 ? 'filme corresponde' : 'filmes correspondem'} a estes critérios.`, surpriseNoMatch: 'Não há filmes na tua lista que correspondam a estes critérios. Ajusta os filtros ou descobre filmes.', surpriseDiscover: 'Descobrir filmes',
+    marathonTitle: 'Maratona de filmes', marathonHelp: 'Escolhe uma sessão de um, dois ou três filmes. O sorteio respeita os filtros e os filmes já vistos que excluíste; não repete filmes na mesma sessão.', marathonCountLabel: 'Filmes nesta sessão', marathonRun: 'Sortear maratona', marathonPoolCount: count => `${count} ${count === 1 ? 'filme elegível' : 'filmes elegíveis'} com os filtros atuais.`, marathonNoMatch: 'Não há filmes elegíveis. Ajusta os filtros ou descobre filmes.', marathonTooFew: (requested, available) => `Pediste ${requested} filmes, mas só há ${available} elegíveis. Sortear os ${available} disponíveis?`, marathonRecordedLimited: (actual, requested) => `Sessão registada com ${actual} filmes elegíveis, em vez dos ${requested} pedidos.`, marathonCancelled: 'Sessão cancelada. Podes ajustar os filtros ou o número de filmes.', marathonRecorded: count => `Sessão registada com ${count} ${count === 1 ? 'filme' : 'filmes'}.`, marathonOrderTitle: 'Ordem de visualização', sessionHistoryTitle: 'Sessões recentes', sessionHistoryEmpty: 'Ainda não há sessões sorteadas neste tema.', sessionSummary: (date, titles) => `${date} · ${titles}`, sessionMovieViewed: title => `Marcar ${title} como visto`, sessionMovieUnviewed: title => `Desmarcar ${title} como visto`, runtimeTotal: total => `Duração total: ${total} min.`, runtimeTotalIncomplete: total => `Duração conhecida: ${total} min; total incompleto porque há filmes sem duração.`, runtimeAllUnknown: 'Duração total incompleta: faltam durações conhecidas.',
     metadataTitle: 'Metadados dos filmes', metadataHelp: 'Completa a duração e a disposição de filmes da tua lista. “Leve, com ambiente familiar” descreve o tom editorial e não garante adequação etária.', metadataMovieLabel: 'Filme', metadataRuntimeLabel: 'Duração em minutos', metadataMoodLegend: 'Disposições', saveMetadata: 'Guardar metadados', metadataSaved: 'Metadados guardados.', metadataInvalid: 'Indica uma duração entre 1 e 600 minutos ou deixa o campo vazio.', metadataNoMovies: 'Não há filmes na lista para editar.',
     discoverTitle: 'Descobrir filmes', discoverIntro: 'Sugestões temáticas curadas. Não são recomendações personalizadas por IA.', searchLabel: 'Pesquisar filmes por título', searchPlaceholder: 'Título do filme', searchButton: 'Pesquisar',
     collectionLabel: 'Coleções temáticas', collectionAll: 'Todas as sugestões', collectionHalloweenFamily: 'Halloween em família', collectionHorror: 'Terror a sério', collectionChristmasClassics: 'Clássicos de Natal', collectionChristmasFamily: 'Natal em família',
@@ -81,6 +88,7 @@ const COPY = {
     durationLabel: 'Maximum runtime', durationAny: 'Any runtime', duration90: 'Up to 90 min', duration120: 'Up to 120 min', duration150: 'Up to 150 min', duration180: 'Up to 180 min',
     filterStatusUnknown: count => `${count} ${count === 1 ? 'movie has' : 'movies have'} no known runtime and are excluded by the time limit. Add a runtime under Movie metadata.`, filterStatusNoMood: count => `${count} ${count === 1 ? 'movie has' : 'movies have'} no mood label and is excluded by the current selection.`, noFilterMatches: 'No movies match these filters. Clear or adjust the filters.', clearFilters: 'Clear filters',
     surpriseTitle: 'Surprise session', surpriseHelp: 'Draw only from movies in your list that match the selected mood and time. This does not add or remove movies.', surpriseMoodLabel: 'Mood', surpriseDurationLabel: 'Time available', surpriseAnyMood: 'Any mood', surpriseRun: 'Draw a surprise session', surpriseMatches: count => `${count} ${count === 1 ? 'movie matches' : 'movies match'} these criteria.`, surpriseNoMatch: 'No movies in your list match these criteria. Adjust the filters or discover movies.', surpriseDiscover: 'Discover movies',
+    marathonTitle: 'Movie marathon', marathonHelp: 'Choose a one-, two-, or three-film session. The draw respects filters and any watched movies you have excluded; it never repeats a movie within one session.', marathonCountLabel: 'Movies in this session', marathonRun: 'Draw a marathon', marathonPoolCount: count => `${count} ${count === 1 ? 'eligible movie' : 'eligible movies'} with the current filters.`, marathonNoMatch: 'There are no eligible movies. Adjust the filters or discover movies.', marathonTooFew: (requested, available) => `You requested ${requested} movies, but only ${available} are eligible. Draw the ${available} available movies?`, marathonRecordedLimited: (actual, requested) => `Session recorded with ${actual} eligible movies instead of the requested ${requested}.`, marathonCancelled: 'Session cancelled. You can adjust the filters or movie count.', marathonRecorded: count => `Session recorded with ${count} ${count === 1 ? 'movie' : 'movies'}.`, marathonOrderTitle: 'Viewing order', sessionHistoryTitle: 'Recent sessions', sessionHistoryEmpty: 'No sessions have been drawn for this theme yet.', sessionSummary: (date, titles) => `${date} · ${titles}`, sessionMovieViewed: title => `Mark ${title} as watched`, sessionMovieUnviewed: title => `Undo watched status for ${title}`, runtimeTotal: total => `Total runtime: ${total} min.`, runtimeTotalIncomplete: total => `Known runtime: ${total} min; total is incomplete because some runtimes are unknown.`, runtimeAllUnknown: 'Total runtime is incomplete because runtimes are unknown.',
     metadataTitle: 'Movie metadata', metadataHelp: 'Fill in runtime and mood for movies on your list. “Light, family-oriented” describes editorial tone and does not guarantee age suitability.', metadataMovieLabel: 'Movie', metadataRuntimeLabel: 'Runtime in minutes', metadataMoodLegend: 'Moods', saveMetadata: 'Save metadata', metadataSaved: 'Metadata saved.', metadataInvalid: 'Enter a runtime from 1 to 600 minutes or leave it blank.', metadataNoMovies: 'There are no movies on the list to edit.',
     discoverTitle: 'Discover movies', discoverIntro: 'Curated theme suggestions. These are not AI-personalized recommendations.', searchLabel: 'Search movies by title', searchPlaceholder: 'Movie title', searchButton: 'Search',
     collectionLabel: 'Themed collections', collectionAll: 'All suggestions', collectionHalloweenFamily: 'Halloween for families', collectionHorror: 'Proper scares', collectionChristmasClassics: 'Christmas classics', collectionChristmasFamily: 'Christmas for families',
@@ -155,13 +163,27 @@ function sanitizeHistory(value, playlist) {
   }
   return records;
 }
+function sanitizeSessions(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(-100).map(session => {
+    if (!session || typeof session.id !== 'string' || typeof session.createdAt !== 'string' || !Number.isFinite(Date.parse(session.createdAt)) || !Array.isArray(session.movies)) return null;
+    const seen = new Set();
+    const movies = session.movies.filter(movie => movie && typeof movie.id === 'string' && typeof movie.title === 'string' && movie.title.trim()).map(movie => ({
+      id: movie.id, title: movie.title,
+      runtimeMinutes: Number.isSafeInteger(movie.runtimeMinutes) && movie.runtimeMinutes > 0 ? movie.runtimeMinutes : null
+    })).filter(movie => { if (seen.has(movie.id)) return false; seen.add(movie.id); return true; }).slice(0, 3);
+    if (!movies.length) return null;
+    return { id: session.id, createdAt: session.createdAt, kind: session.kind === 'marathon' ? 'marathon' : 'single', movies };
+  }).filter(Boolean);
+}
 function makeThemeState(playlistInput, historyInput, flags = {}) {
   const playlist = Array.isArray(playlistInput) ? sanitizePlaylist(playlistInput, '') : parseMovieLines(playlistInput);
   const history = sanitizeHistory(historyInput, playlist);
   const viewed = Array.isArray(flags.viewed) ? [...new Set(flags.viewed.filter(id => typeof id === 'string'))] : [];
   const moods = Array.isArray(flags.filters?.moods) ? [...new Set(flags.filters.moods.filter(mood => ['light', 'scary', 'nostalgic'].includes(mood)))] : [];
   const maxDuration = [90, 120, 150, 180].includes(flags.filters?.maxDuration) ? flags.filters.maxDuration : null;
-  return { playlist, history, viewed, avoidViewed: flags.avoidViewed === true, filters: { moods, maxDuration } };
+  const sessions = sanitizeSessions(flags.sessions);
+  return { playlist, history, viewed, avoidViewed: flags.avoidViewed === true, filters: { moods, maxDuration }, sessions };
 }
 function addExactEditorialMetadata(theme, themeData) {
   const curatedMovies = CURATED_CATALOG[theme] ?? [];
@@ -185,9 +207,9 @@ function migrateOldTheme(inputTheme, fallbackMovies, fallbackHistory, theme) {
 }
 function initialState() {
   const existing = parseStored(STORAGE_KEY, null);
-  if (existing && existing.version === 4 && existing.themes?.halloween && existing.themes?.christmas) {
+  if (existing && existing.version === 5 && existing.themes?.halloween && existing.themes?.christmas) {
     return {
-      version: 4,
+      version: 5,
       activeTheme: existing.activeTheme === 'christmas' ? 'christmas' : 'halloween',
       language: existing.language === 'en' ? 'en' : 'pt-PT',
       soundEnabled: existing.soundEnabled !== false,
@@ -198,9 +220,9 @@ function initialState() {
     };
   }
   const previous = parseStored(PREVIOUS_STORAGE_KEY, null);
-  if (previous && previous.version === 3 && previous.themes?.halloween && previous.themes?.christmas) {
+  if (previous && previous.version === 4 && previous.themes?.halloween && previous.themes?.christmas) {
     return {
-      version: 4,
+      version: 5,
       activeTheme: previous.activeTheme === 'christmas' ? 'christmas' : 'halloween',
       language: previous.language === 'en' ? 'en' : 'pt-PT',
       soundEnabled: typeof previous.soundEnabled === 'boolean' ? previous.soundEnabled : parseStored('halloween-sound-v1', true) === true,
@@ -210,10 +232,23 @@ function initialState() {
       }
     };
   }
+  const previousV3 = parseStored(PREVIOUS_V3_STORAGE_KEY, null);
+  if (previousV3 && previousV3.version === 3 && previousV3.themes?.halloween && previousV3.themes?.christmas) {
+    return {
+      version: 5,
+      activeTheme: previousV3.activeTheme === 'christmas' ? 'christmas' : 'halloween',
+      language: previousV3.language === 'en' ? 'en' : 'pt-PT',
+      soundEnabled: typeof previousV3.soundEnabled === 'boolean' ? previousV3.soundEnabled : parseStored('halloween-sound-v1', true) === true,
+      themes: {
+        halloween: migrateOldTheme(previousV3.themes.halloween, DEFAULT_MOVIES.join('\n'), LEGACY_HISTORY, 'halloween'),
+        christmas: migrateOldTheme(previousV3.themes.christmas, CHRISTMAS_MOVIES.join('\n'), {}, 'christmas')
+      }
+    };
+  }
   const previousV2 = parseStored(LEGACY_STORAGE_KEY, null);
   if (previousV2 && previousV2.version === 2 && previousV2.themes?.halloween && previousV2.themes?.christmas) {
     return {
-      version: 4,
+      version: 5,
       activeTheme: previousV2.activeTheme === 'christmas' ? 'christmas' : 'halloween',
       language: previousV2.language === 'en' ? 'en' : 'pt-PT',
       soundEnabled: typeof previousV2.soundEnabled === 'boolean' ? previousV2.soundEnabled : parseStored('halloween-sound-v1', true) === true,
@@ -227,7 +262,7 @@ function initialState() {
   const savedMovies = parseStored('halloween-movies-v1', DEFAULT_MOVIES.join('\n'));
   const savedHistory = parseStored('halloween-history-v1', LEGACY_HISTORY);
   return {
-    version: 3,
+    version: 5,
     activeTheme: parseStored('cinema-theme-v1', 'halloween') === 'christmas' ? 'christmas' : 'halloween',
     language: parseStored('cinema-language-v1', 'pt-PT') === 'en' ? 'en' : 'pt-PT',
     soundEnabled: parseStored('halloween-sound-v1', true) === true,
@@ -245,6 +280,7 @@ let themeData = state.themes[activeTheme];
 let history = themeData.history;
 let viewed = themeData.viewed;
 let avoidViewed = themeData.avoidViewed;
+currentSession = themeData.sessions.at(-1) ?? null;
 input.value = themeData.playlist.map(movie => movie.title).join('\n');
 
 function playlistRecords() { return themeData.playlist; }
@@ -258,7 +294,7 @@ function reconcilePlaylist(value) {
   });
 }
 function persistState() {
-  state.version = 4;
+  state.version = 5;
   state.activeTheme = activeTheme;
   state.language = language;
   state.soundEnabled = soundEnabled;
@@ -331,6 +367,13 @@ function renderLanguage() {
   document.querySelector('#metadata-nostalgic-label').textContent = translate('moodNostalgic');
   document.querySelector('#save-metadata').textContent = translate('saveMetadata');
   document.querySelector('#metadata-status').textContent = metadataStatusKey ? translate(metadataStatusKey) : '';
+  document.querySelector('#marathon-help').textContent = translate('marathonHelp');
+  document.querySelector('#marathon-count-label').textContent = translate('marathonCountLabel');
+  document.querySelector('#marathon-submit').textContent = translate('marathonRun');
+  document.querySelector('#marathon-order-title').textContent = translate('marathonOrderTitle');
+  document.querySelector('#session-history-title').textContent = translate('sessionHistoryTitle');
+  document.querySelector('#session-history-empty').textContent = translate('sessionHistoryEmpty');
+  document.querySelector('#marathon-status').textContent = marathonStatusKey ? translate(marathonStatusKey, ...marathonStatusArgs) : '';
   const selectedSurpriseMood = surpriseMoodSelect.value || 'any';
   surpriseMoodSelect.replaceChildren();
   for (const [value, key] of [['any', 'surpriseAnyMood'], ['light', 'moodLight'], ['scary', 'moodScary'], ['nostalgic', 'moodNostalgic']]) {
@@ -362,6 +405,7 @@ function renderLanguage() {
   document.querySelector('#tmdb-notice').textContent = translate('tmdbNotice');
   document.querySelector('#tmdb-logo').alt = translate('tmdbLogoAlt');
   renderHistory();
+  renderSessionPanel();
   syncWatchButton();
   renderEligibility(false);
   renderCatalog();
@@ -421,6 +465,51 @@ function renderHistory() {
   toggle.hidden = entries.length <= HISTORY_LIMIT;
   toggle.textContent = showAllHistory ? translate('less') : translate('more');
 }
+function sessionDateLabel(session) {
+  const locale = language === 'pt-PT' ? 'pt-PT' : 'en-US';
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(session.createdAt));
+}
+function renderMarathonResult(session) {
+  const container = document.querySelector('#marathon-result');
+  const list = document.querySelector('#marathon-order');
+  list.replaceChildren();
+  container.hidden = !session;
+  if (!session) return;
+  session.movies.forEach(movie => {
+    const item = document.createElement('li');
+    const title = document.createElement('span'); title.textContent = movie.title;
+    const isViewed = viewed.includes(movie.id);
+    const watched = document.createElement('button'); watched.type = 'button'; watched.className = 'text-button session-watch-button';
+    watched.textContent = translate(isViewed ? 'undoViewed' : 'markViewed');
+    watched.setAttribute('aria-label', translate(isViewed ? 'sessionMovieUnviewed' : 'sessionMovieViewed', movie.title));
+    watched.setAttribute('aria-pressed', String(isViewed));
+    watched.addEventListener('click', () => setWatched(movie.id, !viewed.includes(movie.id)));
+    item.append(title, watched); list.append(item);
+  });
+  const known = session.movies.filter(movie => Number.isSafeInteger(movie.runtimeMinutes));
+  const total = known.reduce((sum, movie) => sum + movie.runtimeMinutes, 0);
+  document.querySelector('#marathon-total').textContent = known.length === session.movies.length
+    ? translate('runtimeTotal', total)
+    : total > 0 ? translate('runtimeTotalIncomplete', total) : translate('runtimeAllUnknown');
+}
+function renderSessionHistory() {
+  const list = document.querySelector('#session-history');
+  const sessions = themeData.sessions ?? [];
+  list.replaceChildren();
+  document.querySelector('#session-history-empty').hidden = sessions.length > 0;
+  for (const session of [...sessions].slice(-10).reverse()) {
+    const item = document.createElement('li');
+    const titles = session.movies.map(movie => movie.title).join(' → ');
+    item.textContent = translate('sessionSummary', sessionDateLabel(session), titles);
+    list.append(item);
+  }
+}
+function renderSessionPanel() {
+  if (currentSession && !(themeData.sessions ?? []).some(session => session.id === currentSession.id)) currentSession = null;
+  if (!currentSession) currentSession = themeData.sessions?.at(-1) ?? null;
+  renderMarathonResult(currentSession);
+  renderSessionHistory();
+}
 document.querySelector('#history-toggle').addEventListener('click', () => { showAllHistory = !showAllHistory; renderHistory(); });
 document.querySelector('#clear-history').addEventListener('click', () => {
   if (!spinning && confirm(translate('confirmClearHistory'))) { history = {}; themeData.history = history; showAllHistory = false; persistState(); renderHistory(); }
@@ -467,11 +556,32 @@ function updateSurprisePreview() {
   const status = matching.length ? translate('surpriseMatches', matching.length) : translate('surpriseNoMatch');
   document.querySelector('#surprise-status').textContent = [status, ...(unknownRuntime ? [translate('filterStatusUnknown', unknownRuntime)] : [])].join(' ');
   document.querySelector('#surprise-discover').hidden = matching.length > 0;
-  document.querySelector('#surprise-submit').disabled = matching.length === 0 || spinning;
+  document.querySelector('#surprise-submit').disabled = matching.length === 0 || spinning || playlistRecords().length > 60;
   return matching;
 }
+function updateMarathonAvailability() {
+  const eligible = eligibleRecords();
+  const button = document.querySelector('#marathon-submit');
+  button.disabled = !eligible.length || spinning || playlistRecords().length > 60;
+  if (!marathonStatusKey) document.querySelector('#marathon-status').textContent = eligible.length ? translate('marathonPoolCount', eligible.length) : translate('marathonNoMatch');
+}
+function runMarathon() {
+  const pool = eligibleRecords();
+  const requested = Number(marathonCountSelect.value);
+  if (!pool.length || ![1, 2, 3].includes(requested)) {
+    marathonStatusKey = 'marathonNoMatch'; marathonStatusArgs = [];
+    document.querySelector('#marathon-status').textContent = translate(marathonStatusKey);
+    return;
+  }
+  if (pool.length < requested && !confirm(translate('marathonTooFew', requested, pool.length))) {
+    marathonStatusKey = 'marathonCancelled'; marathonStatusArgs = [];
+    document.querySelector('#marathon-status').textContent = translate(marathonStatusKey);
+    return;
+  }
+  spin(pool, Math.min(requested, pool.length), 'marathon', requested);
+}
 function syncWatchButton() {
-  const isShown = Boolean(lastResultMovieId);
+  const isShown = Boolean(lastResultMovieId) && lastResultType === 'single';
   watchButton.hidden = !isShown;
   if (!isShown) return;
   const isViewed = viewed.includes(lastResultMovieId);
@@ -511,6 +621,7 @@ function renderEligibility(redraw = true) {
   document.querySelector('#filter-status').textContent = filterNotes.join(' ');
   if (redraw) drawWheel(eligible);
   updateSurprisePreview();
+  updateMarathonAvailability();
   return eligible;
 }
 function displayTitle(movie) { return String(movie.title ?? '').replace(/\s*\(\d{4}\)\s*$/, ''); }
@@ -720,6 +831,7 @@ function setWatched(movieId, isWatched) {
   persistState();
   renderEligibility();
   syncWatchButton();
+  renderSessionPanel();
 }
 watchButton.addEventListener('click', () => setWatched(lastResultMovieId, !viewed.includes(lastResultMovieId)));
 function applyFiltersFromControls() {
@@ -729,6 +841,7 @@ function applyFiltersFromControls() {
   };
   avoidViewed = avoidViewedInput.checked;
   themeData.avoidViewed = avoidViewed;
+  marathonStatusKey = ''; marathonStatusArgs = [];
   persistState(); renderEligibility();
 }
 avoidViewedInput.addEventListener('change', applyFiltersFromControls);
@@ -737,6 +850,7 @@ durationFilter.addEventListener('change', applyFiltersFromControls);
 document.querySelector('#clear-filters').addEventListener('click', () => {
   themeData.filters = { moods: [], maxDuration: null };
   avoidViewed = false; themeData.avoidViewed = false;
+  marathonStatusKey = ''; marathonStatusArgs = [];
   persistState(); renderEligibility();
 });
 metadataMovieSelect.addEventListener('change', syncMetadataEditor);
@@ -750,6 +864,7 @@ document.querySelector('#save-metadata').addEventListener('click', () => {
   const moods = metadataMoodInputs.filter(input => input.checked).map(input => input.value);
   themeData.playlist = playlistRecords().map(item => item.id === id ? createMovie(item.title, item.source, { ...item, runtimeMinutes: runtime, moods }) : item);
   input.value = playlistRecords().map(item => item.title).join('\n');
+  marathonStatusKey = ''; marathonStatusArgs = [];
   persistState(); renderEligibility();
   metadataStatusKey = 'metadataSaved';
   document.querySelector('#metadata-status').textContent = translate(metadataStatusKey);
@@ -760,6 +875,8 @@ document.querySelector('#surprise-submit').addEventListener('click', () => {
   const matching = updateSurprisePreview();
   if (matching.length) { document.querySelector('#surprise-status').textContent = translate('surpriseMatches', matching.length); spin(matching); }
 });
+marathonCountSelect.addEventListener('change', () => { marathonStatusKey = ''; marathonStatusArgs = []; updateMarathonAvailability(); });
+document.querySelector('#marathon-submit').addEventListener('click', runMarathon);
 document.querySelector('#surprise-discover').addEventListener('click', () => {
   const discovery = document.querySelector('#discover-panel'); discovery.open = true;
   catalogSearchInput.focus();
@@ -850,14 +967,26 @@ function setAdvancedControlsDisabled(disabled) {
   surpriseMoodSelect.disabled = disabled;
   surpriseDurationSelect.disabled = disabled;
   document.querySelector('#surprise-submit').disabled = disabled;
+  marathonCountSelect.disabled = disabled;
+  document.querySelector('#marathon-submit').disabled = disabled || !eligibleRecords().length || playlistRecords().length > 60;
   metadataMovieSelect.disabled = disabled || playlistRecords().length === 0;
   metadataRuntimeInput.disabled = disabled || playlistRecords().length === 0;
   metadataMoodInputs.forEach(input => { input.disabled = disabled || playlistRecords().length === 0; });
   document.querySelector('#save-metadata').disabled = disabled || playlistRecords().length === 0;
 }
-function spin(selectedPool = eligibleRecords()) {
+function recordSession(movies, kind) {
+  const session = {
+    id: `session:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+    createdAt: new Date().toISOString(), kind,
+    movies: movies.map(movie => ({ id: movie.id, title: movie.title, runtimeMinutes: movie.runtimeMinutes }))
+  };
+  themeData.sessions = [...(themeData.sessions ?? []), session].slice(-100);
+  currentSession = session;
+  return session;
+}
+function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requestedCount = count) {
   const movies = selectedPool;
-  if (spinning || movies.length < 1 || playlistRecords().length > 60) return;
+  if (spinning || movies.length < 1 || count < 1 || count > movies.length || playlistRecords().length > 60) return;
   spinning = true; spinButton.disabled = true; input.disabled = true; resetButton.disabled = true; setAdvancedControlsDisabled(true);
   document.querySelector('#edit-toggle').disabled = true; document.querySelector('#finish-edit').disabled = true;
   document.querySelector('#clear-history').disabled = true; document.querySelector('#history-toggle').disabled = true; themeSelect.disabled = true;
@@ -869,6 +998,9 @@ function spin(selectedPool = eligibleRecords()) {
   document.querySelector('#result-description').textContent = translate('spinningDescription');
   document.querySelector('#result').classList.remove('winner', 'reveal');
   const winner = randomIndex(movies.length);
+  const sessionMovies = [movies[winner]];
+  const remaining = movies.filter((_, index) => index !== winner);
+  while (sessionMovies.length < count) sessionMovies.push(remaining.splice(randomIndex(remaining.length), 1)[0]);
   const full = Math.PI * 2;
   const desired = (full - (winner + 0.5) * full / movies.length) % full;
   const start = rotation;
@@ -888,10 +1020,20 @@ function spin(selectedPool = eligibleRecords()) {
       if (soundEnabled) { endSound.currentTime = 0; endSound.play().catch(() => {}); }
       winningIndex = winner; drawWheel(movies);
       const selectedMovie = movies[winner];
-      const priorCount = history[selectedMovie.id]?.count ?? 0;
-      history[selectedMovie.id] = { id: selectedMovie.id, title: selectedMovie.title, count: priorCount + 1 };
+      for (const movie of sessionMovies) {
+        const priorCount = history[movie.id]?.count ?? 0;
+        history[movie.id] = { id: movie.id, title: movie.title, count: priorCount + 1 };
+      }
       lastResultMovieId = selectedMovie.id;
+      lastResultType = kind;
+      recordSession(sessionMovies, kind);
+      if (kind === 'marathon') {
+        marathonStatusKey = sessionMovies.length < requestedCount ? 'marathonRecordedLimited' : 'marathonRecorded';
+        marathonStatusArgs = sessionMovies.length < requestedCount ? [sessionMovies.length, requestedCount] : [sessionMovies.length];
+        document.querySelector('#marathon-status').textContent = translate(marathonStatusKey, ...marathonStatusArgs);
+      } else { marathonStatusKey = ''; marathonStatusArgs = []; }
       persistState(); renderHistory(); syncWatchButton();
+      renderSessionPanel();
       spinButton.innerHTML = spinIcon + `<span>${translate('spinAgain')}</span>`; spinButton.disabled = false;
       const result = document.querySelector('#result'); result.classList.add('winner', 'reveal');
       document.querySelector('#result-label').textContent = translate('resultLabel');
@@ -899,6 +1041,7 @@ function spin(selectedPool = eligibleRecords()) {
       document.querySelector('#result-description').textContent = translate('resultDescription');
       document.querySelector('#hint').textContent = translate('resultHint');
       updateSurprisePreview();
+      updateMarathonAvailability();
       resolve({ movie: selectedMovie.title, id: selectedMovie.id });
     }
     requestAnimationFrame(frame);
@@ -923,6 +1066,8 @@ themeSelect.addEventListener('change', () => {
   history = themeData.history;
   viewed = themeData.viewed;
   avoidViewed = themeData.avoidViewed;
+  currentSession = themeData.sessions.at(-1) ?? null;
+  lastResultType = 'single'; marathonStatusKey = ''; marathonStatusArgs = [];
   input.value = themeData.playlist.map(movie => movie.title).join('\n');
   selectedCollection = 'all';
   catalogSearchInput.value = '';
