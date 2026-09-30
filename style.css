@@ -86,5 +86,88 @@ body[data-theme="halloween"] .advanced-panel{background:linear-gradient(145deg,#
 body[data-theme="halloween"] .marathon-result{border-color:#ad6c435c;background:#100b08aa}body[data-theme="halloween"] .session-history-section{border-color:#aa73474a}
 @media(max-width:650px){.marathon-result{padding:11px}.marathon-result li>span{font-size:14px}.session-history-section li{padding:10px 2px}}
 .shared-preview{max-width:860px;margin:28px auto 0;padding:20px 24px;border:1px solid color-mix(in srgb,var(--accent) 34%,transparent);border-radius:12px;background:linear-gradient(145deg,#1b181b,#141515)}.shared-preview h2{font-size:22px}.shared-preview p{color:#c8bb9f;font-size:12px;line-height:1.6}.shared-preview ol{max-height:220px;overflow:auto;padding-left:24px;color:#f2e8d4;font-size:12px;line-height:1.8}.shared-preview li{overflow-wrap:anywhere}.shared-preview-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.sharing-panel .advanced-body>button,.portability-panel .advanced-body>button{min-height:44px;padding:8px 11px}.sharing-panel input[readonly]{overflow:hidden;text-overflow:ellipsis}.portability-panel hr{border:0;border-top:1px solid color-mix(in srgb,var(--accent) 25%,transparent);margin:17px 0}.import-preview{margin:12px 0;padding:12px;border:1px solid color-mix(in srgb,var(--accent) 28%,transparent);border-radius:8px;background:#0002}.import-preview p{overflow-wrap:anywhere}@media(max-width:650px){.shared-preview{margin-top:19px;padding:17px 15px}.shared-preview h2{font-size:19px}.shared-preview-actions{gap:8px}.shared-preview-actions button{min-height:44px}}
-/* One workspace: session, collection and history, rather than a stack of cards. */
+/* One workspace: session, collection and history. */
 main{max-width:1200px;padding-top:26px}.intro h1{font-size:clamp(40px,4.8vw,60px)}.game-layout{gap:54px;margin-top:22px;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}.side-panels.session-workspace{display:block;min-width:0;margin-top:28px;padding:25px 26px;background:linear-gradient(145deg,#1c1911eb,#0f120dea);border:1px solid color-mix(in srgb,var(--accent) 23%,transparent);border-radius:16px;box-shadow:0 25px 60px #0003;align-self:start}.workspace-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.workspace-heading h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:33px;font-weight:600;letter-spacing:-.5px;margin:6px 0 0}.workspace-heading .eyebrow{font-size:8px;letter-spacing:2px;color:#c6a474}.collection-shortcut{white-space:nowrap;border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:20px;padding:8px 12px;color:var(--accent);font-size:11px;min-height:40px;background:color-mix(in srgb,var(--accent) 8%,transparent)}.collection-shortcut:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 16%,transparent)}.workspace-tabs{display:flex;border-bottom:1px solid #b1955833;margin:20px 0 15px;gap:8px}.workspace-tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;padding:12px 10px;min-height:44px;background:none;color:#a79e8c;font-size:12px;flex:1}.workspace-tabs button[aria-selected=true]{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}.workspace-tabs button:hover{color:#f2ddb2}.session-workspace .advanced-panel,.session-workspace .panel,.session-workspace .history-panel{background:none!important;border:0;border-radius:0;box-shadow:none;padding:0;margin:0;overflow:visible}.session-workspace .advanced-panel+ .advanced-panel{border-top:1px solid #b18a4030;margin-top:12px}.session-workspace .advanced-panel>summary{padding:14px 0;min-height:44px;font-size:13px;color:#deceb1;font-weight:500}.session-workspace .advanced-panel>summary:after{font-size:18px;color:#a99064}.session-workspace .advanced-body{padding:0 0 12px}.session-workspace .advanced-help{font-size:10px;line-height:1.7;color:#9d9685;margin:0 0 10px}.session-workspace .filter-moods{display:flex;flex-wrap:wrap;gap:7px;border:0;border-radius:0;margin:14px 0 8px;padding:0}.session-workspace .filter-moods legend{padding:0;margin-bottom:9px;font-size:10px;color:#b7a78b}.session-workspace .filter-moods label{position:relative;padding:8px 11px;min-height:40px;border:1px solid #b79b5d38;border-radius:24px;font-size:11px;background:#0001}.session-workspace .filter-moods label:has(input:checked){background:color-mix(in srgb,var(--accent) 14%,transparent);border-color:var(--accent);color:#ffe0ae}.session-workspace .filter-moods input{width:13px;height:13px;margin:0;accent-color:var(--accent)}.session-workspace .select-filter{margin:14px 0;gap:8px}.session-workspace .select-filter select,.session-workspace .select-filter input{background:#0b0e0b;border-color:#a48c5247;font-size:12px}.session-workspace .viewed-choice{display:flex;gap:9px;align-items:center;font-size:11px;color:#bfb39a;padding:9px 0}.viewed-choice input{width:16px;height:16px;accent-color:var(--accent)}.session-workspace .clear-filters{border:0;background:none;min-height:34px;padding:5px 0;font-size:10px;color:#baaa88}.session-workspace [role=status]:empty{display:none}.session-workspace .advanced-body [role=status]{font-size:10px;line-height:1.7}.session-workspace .primary-action{font-size:11px;padding:9px 12px;border-color:#b38f4750}.session-workspace .collection-panel .edit-toggle{display:inline-block;width:auto;font-size:11px;margin:0;padding:10px 14px;text-align:center}.session-workspace #find-movies{font-size:11px;color:var(--accent);min-height:44px;padding:10px 0}.playlist-preview{list-style:none;margin:15px 0 3px;padding:0}.playlist-preview li{padding:11px 0;border-bottom:1px solid #b9975730;color:#ded3bc;font-size:12px;overflow-wrap:anywhere}.session-workspace .list-footer{margin:8px 0 18px}.session-workspace #list-status{font-size:9px;color:#998e77}.session-workspace .history-heading{margin-top:18px}.session-workspace .history-note{margin:8px 0 5px}.session-workspace .history-heading h2{font-size:25px}.session-workspace .session-history-section{margin-top:22px}.eligibility-summary{font-size:11px;padding:10px 12px;border:1px solid #c3923940;border-radius:6px;background:#d1881310;color:var(--accent);margin:0 0 12px}.session-workspace .exhausted-actions{margin-bottom:14px}.session-workspace .exhausted-actions p{font-size:11px;line-height:1.7}.session-workspace #exhausted-actions button{font-size:10px;padding:9px}.wheel-stage{padding-top:18px}.wheel-frame{max-width:445px}.wheel-caption{margin-bottom:24px}.wheel-orbit{margin-top:24px}.discovery-panel{width:100%;max-width:none;margin-top:36px;border:1px solid #b1955836;border-radius:12px;background:#11150ddd;scroll-margin-top:20px}.discovery-panel>summary{padding:20px 24px;font-family:'Cormorant Garamond',Georgia,serif;font-size:27px;color:#e8d4ac;min-height:64px}.discovery-panel .discover-body{padding:4px 24px 24px}.discovery-panel .catalog-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.catalog-card{min-width:0}.catalog-card button{font-size:11px}.marathon-result{border-radius:8px}.workspace-tabs :focus-visible,.collection-shortcut:focus-visible{outline:2px solid #ffe1a7;outline-offset:3px}@media(max-width:950px){.game-layout{gap:30px}.side-panels.session-workspace{padding:20px}.discovery-panel .catalog-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.intro p{max-width:310px;line-height:1.7}}@media(max-width:650px){main{padding:24px 20px 32px}.intro h1{font-size:40px}.intro p{margin:13px auto 0;max-width:320px;font-size:11px}.game-layout{grid-template-columns:1fr;gap:24px;margin-top:18px}.side-panels.session-workspace{margin-top:0;padding:22px 19px}.workspace-heading h2{font-size:30px}.workspace-tabs{margin-top:16px}.workspace-tabs button{font-size:12px;padding:12px 6px}.wheel-stage{padding:12px 12px 16px}.wheel-frame{max-width:340px}.discovery-panel{margin-top:22px}.discovery-panel>summary{font-size:25px;padding:18px 19px}.discovery-panel .discover-body{padding:0 16px 20px}.discovery-panel .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.session-workspace .filter-moods label{padding:8px 10px;min-height:44px}.collection-shortcut{padding:8px 10px}.session-workspace .advanced-panel>summary{min-height:48px}}
+/* Halloween: a wooden fairground prop with a fixed, illustrated frame. */
+.haunted-frame { display: none; }
+body[data-theme="halloween"] .wheel-frame {
+  padding: 0;
+  aspect-ratio: 1;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 18px 24px #0009);
+}
+body[data-theme="halloween"] .wheel-frame::before,
+body[data-theme="halloween"] .wheel-frame::after,
+body[data-theme="halloween"] .wheel-frame > .pointer { display: none; }
+body[data-theme="halloween"] .wheel-frame canvas {
+  position: absolute;
+  inset: 8%;
+  width: 84%;
+  height: 84%;
+  box-shadow: 0 0 0 5px #1a100b;
+}
+body[data-theme="halloween"] .haunted-frame {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+  overflow: visible;
+}
+body[data-theme="halloween"] .wheel-center {
+  z-index: 3;
+  width: 99px;
+  height: 99px;
+  border: 7px solid #4b2b1c;
+  background: radial-gradient(ellipse at 35% 25%, #603821, #29170f 70%);
+  box-shadow: inset 0 0 0 2px #96613b, inset 0 -7px 12px #10090399,
+    0 0 0 3px #16100c, 0 0 0 5px #865431, 0 8px 15px #0009;
+}
+body[data-theme="halloween"] .wheel-center svg {
+  width: 57px;
+  height: 57px;
+  color: #ff9b28;
+  filter: drop-shadow(0 0 7px #ff701577);
+}
+body[data-theme="halloween"] .wheel-center small { display: none; }
+body[data-theme="halloween"] .wheel-caption {
+  position: relative;
+  display: table;
+  margin: 0 auto 34px;
+  padding: 13px 25px;
+  border: 1px solid #895331;
+  border-radius: 5px 9px 4px 7px;
+  background: repeating-linear-gradient(3deg, transparent 0 8px, #08050333 9px 10px),
+    linear-gradient(110deg, #392014, #54321e 55%, #25160f);
+  box-shadow: inset 0 1px #bc794338, 0 4px 0 #160e09, 0 8px 18px #0007;
+  color: #ffd39b;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  transform: rotate(-2deg);
+}
+body[data-theme="halloween"] .wheel-caption::before,
+body[data-theme="halloween"] .wheel-caption::after {
+  content: '';
+  position: absolute;
+  top: 47%;
+  width: 5px;
+  height: 5px;
+  background: #a58056;
+  border: 1px solid #20120c;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px #000;
+}
+body[data-theme="halloween"] .wheel-caption::before { left: 9px; }
+body[data-theme="halloween"] .wheel-caption::after { right: 9px; }
+@media (max-width: 650px) {
+  body[data-theme="halloween"] .wheel-center { width: 75px; height: 75px; border-width: 5px; }
+  body[data-theme="halloween"] .wheel-center svg { width: 45px; height: 45px; }
+  body[data-theme="halloween"] .wheel-caption { font-size: 14px; padding: 11px 22px; margin-bottom: 29px; }
+}
