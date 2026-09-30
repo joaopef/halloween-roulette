@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 240">
+  <defs>
+    <linearGradient id="wood"><stop stop-color="#25150f"/><stop offset=".45" stop-color="#643620"/><stop offset="1" stop-color="#26160f"/></linearGradient>
+    <radialGradient id="pumpkin"><stop stop-color="#ffb542"/><stop offset="1" stop-color="#bc4a12"/></radialGradient>
+  </defs>
+  <path d="M5 239V63C5-14 115-14 115 63v176" fill="#18100c" stroke="#926044" stroke-width="5"/>
+  <path d="M14 239V64c0-65 92-65 92 0v175Z" fill="url(#wood)" stroke="#24120c" stroke-width="3"/>
+  <g fill="none" stroke="#1e100b" stroke-width="2" opacity=".7"><path d="M30 27v210M49 15v222M71 15v222M91 27v210"/><path d="M22 71q3 28 0 60M40 155q-4 24 0 55M81 52q4 28 0 50M99 152q-4 21 0 58" stroke="#bd7951" stroke-width="1" opacity=".4"/></g>
+  <path d="M20 69h80v65H20ZM20 146h80v78H20Z" fill="none" stroke="#b1754638" stroke-width="3"/>
+  <g fill="#161312" stroke="#77624e" stroke-width="1.2"><path d="M10 75h32l-7 7H10ZM10 174h32l-7 7H10Z"/><circle cx="16" cy="78" r="2"/><circle cx="16" cy="177" r="2"/></g>
+  <path d="M88 130v25" stroke="#21130b" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="88" cy="137" r="5" fill="#bd8b41" stroke="#3b2815" stroke-width="2"/>
+  <g transform="translate(60 99)">
+    <path d="M-2-17l3-7 5 1-4 7" fill="#5d6633"/>
+    <path d="M0-16c-24-8-26 33 0 31 27 2 24-39 0-31Z" fill="url(#pumpkin)" stroke="#7e300c" stroke-width="2"/>
+    <path d="M-14-4l10-4-2 9ZM14-4L4-8l2 9ZM0-2l-4 7h8ZM-13 6l8 3 4-3 4 5 4-4 7-2-6 10H-8Z" fill="#160f09"/>
+    <circle cy="18" r="11" fill="none" stroke="#a16b37" stroke-width="3"/>
+  </g>
+  <g fill="none" stroke="#ccc1a0" stroke-width=".8" opacity=".5"><path d="M98 21L70 32M98 21L107 61M98 21L87 51M88 26q2 12 13 14M78 29q5 22 26 20M70 32q8 28 37 29"/></g>
+  <path d="M30 229q12-14 17 0m28 0q13-17 19 0" fill="none" stroke="#17110c" stroke-width="3"/>
+</svg>

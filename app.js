@@ -4,8 +4,6 @@ const input = document.querySelector('#movies');
 const spinButton = document.querySelector('#spin');
 const drawModeSelect = document.querySelector('#draw-mode');
 const drawPaceSelect = document.querySelector('#draw-pace');
-const cinemaButton = document.querySelector('#cinema-toggle');
-const cinemaExitButton = document.querySelector('#cinema-exit');
 const resetButton = document.querySelector('#reset');
 const soundButton = document.querySelector('#sound');
 const editor = document.querySelector('#movie-editor');
@@ -73,7 +71,7 @@ const COPY = {
     halloween: 'Halloween', christmas: 'Natal',
     eyebrow: 'UMA SESSÃO ESCOLHIDA PELO DESTINO', headline1: 'A noite é tua.', headline2: 'O filme é da sorte.', intro: 'Entre bruxas, fantasmas e pesadelos. Roda e descobre o que te espera.',
     wheelCaption: 'A RODA DOS ARREPIOS', wheelOrbit: '✦ &nbsp; QUE A SORTE TE ASSOMBRE &nbsp; ✦', spin: 'Rodar a roleta', spinAgain: 'Rodar outra vez', spinning: 'A escolher…',
-    drawModeLabel: 'Modo de sorteio', modeWheel: 'Roleta', modeDoors: 'Portas misteriosas', modeShuffle: 'Shuffle de títulos', spinShuffle: 'Começar shuffle', paceLabel: 'Ritmo', paceFast: 'Rápido', paceSuspense: 'Suspense', cinemaOn: 'Modo cinema', cinemaOff: 'Sair do modo cinema', chooseDoor: 'Escolhe uma porta', doorLabel: number => `Porta ${number}`, doorOpen: 'Abrir porta',
+    drawModeLabel: 'Modo de sorteio', modeWheel: 'Roleta', modeDoors: 'Portas misteriosas', modeShuffle: 'Shuffle de títulos', spinShuffle: 'Começar shuffle', shuffleAgain: 'Sortear outro filme', doorsAgain: 'Escolher outra porta', paceLabel: 'Ritmo', paceFast: 'Rápido', paceSuspense: 'Suspense', chooseDoor: 'Escolhe uma porta', doorLabel: number => `Porta ${number}`, doorOpen: 'Abrir porta',
     collectionEyebrow: 'A TUA SESSÃO DE CINEMA', collectionTitle: 'Filmes na roleta', collectionSummary: 'possibilidades para esta noite. A tua coleção, pronta a entrar em cena.', editMovies: 'Editar filmes', editorHelp: 'Um filme por linha. Troca, acrescenta ou elimina títulos.', moviesLabel: 'Filmes a incluir na roleta, um por linha', reset: 'Repor a seleção inicial', finishEdit: 'Concluir edição',
     eligibleMovies: count => `${count} ${count === 1 ? 'filme elegível' : 'filmes elegíveis'}`, avoidViewed: 'Evitar filmes já vistos', exhausted: 'Todos os filmes da lista estão marcados como vistos. Podes incluir os vistos ou reiniciar a lista de vistos deste tema.', includeViewed: 'Incluir filmes vistos', resetViewed: 'Reiniciar lista de vistos',
     markViewed: 'Marcar como visto', undoViewed: 'Desmarcar como visto', viewed: 'Visto',
@@ -109,7 +107,7 @@ const COPY = {
     brandHalloween: 'HALLOWEEN <b>ROULETTE</b>', brandChristmas: 'CHRISTMAS <b>ROULETTE</b>', halloween: 'Halloween', christmas: 'Christmas',
     eyebrow: 'A MOVIE NIGHT CHOSEN BY FATE', headline1: 'Your night.', headline2: 'The film is up to fate.', intro: 'Among witches, ghosts and nightmares. Spin to see what awaits.',
     wheelCaption: 'THE SHIVER SPINNER', wheelOrbit: '✦ &nbsp; LET FATE HAUNT YOU &nbsp; ✦', spin: 'Spin the wheel', spinAgain: 'Spin again', spinning: 'Choosing…',
-    drawModeLabel: 'Draw mode', modeWheel: 'Roulette', modeDoors: 'Mystery doors', modeShuffle: 'Title shuffle', spinShuffle: 'Start shuffle', paceLabel: 'Pace', paceFast: 'Fast', paceSuspense: 'Suspense', cinemaOn: 'Cinema mode', cinemaOff: 'Exit cinema mode', chooseDoor: 'Choose a door', doorLabel: number => `Door ${number}`, doorOpen: 'Open door',
+    drawModeLabel: 'Draw mode', modeWheel: 'Roulette', modeDoors: 'Mystery doors', modeShuffle: 'Title shuffle', spinShuffle: 'Start shuffle', shuffleAgain: 'Pick another movie', doorsAgain: 'Choose another door', paceLabel: 'Pace', paceFast: 'Fast', paceSuspense: 'Suspense', chooseDoor: 'Choose a door', doorLabel: number => `Door ${number}`, doorOpen: 'Open door',
     collectionEyebrow: 'YOUR MOVIE NIGHT', collectionTitle: 'Movies on the wheel', collectionSummary: 'possibilities for tonight. Your collection is ready for its close-up.', editMovies: 'Edit movies', editorHelp: 'One movie per line. Add, replace or remove titles.', moviesLabel: 'Movies on the wheel, one per line', reset: 'Restore starter selection', finishEdit: 'Done editing',
     eligibleMovies: count => `${count} ${count === 1 ? 'eligible movie' : 'eligible movies'}`, avoidViewed: 'Avoid movies already watched', exhausted: 'Every movie in this collection is marked as watched. Include watched movies or reset this theme’s watched list.', includeViewed: 'Include watched movies', resetViewed: 'Reset watched list',
     markViewed: 'Mark as watched', undoViewed: 'Undo watched status', viewed: 'Watched',
@@ -340,6 +338,12 @@ function persistState() {
   themeData.avoidViewed = avoidViewed;
   return save(STORAGE_KEY, state);
 }
+function drawActionKey(repeat = Boolean(lastResultMovieId)) {
+  const mode = activeTheme === 'halloween' ? drawModeSelect.value : 'wheel';
+  if (mode === 'doors') return repeat ? 'doorsAgain' : 'chooseDoor';
+  if (mode === 'shuffle') return repeat ? 'shuffleAgain' : 'spinShuffle';
+  return repeat ? 'spinAgain' : 'spin';
+}
 function syncDrawMode() {
   const halloween = activeTheme === 'halloween';
   const mode = halloween ? drawModeSelect.value : 'wheel';
@@ -347,7 +351,7 @@ function syncDrawMode() {
   document.querySelector('.wheel-stage').hidden = mode !== 'wheel';
   document.querySelector('#doors-stage').hidden = mode !== 'doors';
   document.querySelector('#shuffle-stage').hidden = mode !== 'shuffle';
-  if (!spinning) spinButton.innerHTML = spinIcon + `<span>${translate(mode === 'doors' ? 'chooseDoor' : mode === 'shuffle' ? lastResultMovieId ? 'spinAgain' : 'spinShuffle' : lastResultMovieId ? 'spinAgain' : 'spin')}</span>`;
+  if (!spinning) spinButton.innerHTML = spinIcon + `<span>${translate(drawActionKey())}</span>`;
 }
 function translate(key, ...args) {
   const value = COPY[language][key];
@@ -373,7 +377,6 @@ function renderLanguage() {
   document.querySelector('#shuffle-stage').setAttribute('aria-label', translate('modeShuffle'));
   for (const [value, key] of [['wheel', 'modeWheel'], ['doors', 'modeDoors'], ['shuffle', 'modeShuffle']]) drawModeSelect.querySelector(`option[value="${value}"]`).textContent = translate(key);
   for (const [value, key] of [['fast', 'paceFast'], ['suspense', 'paceSuspense']]) drawPaceSelect.querySelector(`option[value="${value}"]`).textContent = translate(key);
-  cinemaButton.textContent = translate('cinemaOn'); cinemaExitButton.textContent = translate('cinemaOff');
   if (doorCandidates.length && !spinning) renderDoors(doorCandidates);
   syncDrawMode();
   document.querySelector('#workspace-tabs').setAttribute('aria-label', translate('workspaceTabs'));
@@ -497,7 +500,7 @@ function renderLanguage() {
     document.querySelector('#result-title').textContent = translate('spinningTitle');
     document.querySelector('#result-description').textContent = translate('spinningDescription');
   }
-  if (!spinning) spinButton.innerHTML = spinIcon + `<span>${winningIndex < 0 ? translate('spin') : translate('spinAgain')}</span>`;
+  if (!spinning) spinButton.innerHTML = spinIcon + `<span>${translate(drawActionKey())}</span>`;
   if (lastResultMovieId) {
     document.querySelector('#result-label').textContent = translate('resultLabel');
     document.querySelector('#result-description').textContent = translate('resultDescription');
@@ -1423,7 +1426,7 @@ function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requ
   document.querySelector('#collection-shortcut').disabled = true;
   document.querySelector('#edit-toggle').disabled = true; document.querySelector('#finish-edit').disabled = true;
   document.querySelector('#clear-history').disabled = true; document.querySelector('#history-toggle').disabled = true; themeSelect.disabled = true; languageSelect.disabled = true; watchButton.disabled = true;
-  drawModeSelect.disabled = true; drawPaceSelect.disabled = true; cinemaButton.disabled = true;
+  drawModeSelect.disabled = true; drawPaceSelect.disabled = true;
   document.querySelectorAll('.mystery-door').forEach(door => { door.disabled = true; door.classList.toggle('is-chosen', door.getAttribute('aria-label') === `${translate('doorLabel', movies.findIndex(movie => movie.id === forcedMovieId) + 1)}. ${translate('doorOpen')}`); });
   winningIndex = -1;
   endSound.pause(); endSound.currentTime = 0;
@@ -1448,7 +1451,10 @@ function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requ
   const ticker = document.querySelector('#shuffle-ticker');
   const shuffleSteps = Math.max(10, Math.min(45, movies.length * 3));
   const shuffledTitles = Array.from({ length: shuffleSteps }, (_, index) => movies[index % movies.length].title).concat(movies[winner].title);
-  if (mode === 'shuffle') ticker.replaceChildren(...shuffledTitles.map(title => { const row = document.createElement('span'); row.textContent = title; return row; }));
+  if (mode === 'shuffle') {
+    ticker.classList.remove('is-settled');
+    ticker.replaceChildren(...Array.from({length: 3}, () => document.createElement('span')));
+  }
   return new Promise(resolve => {
     const started = performance.now();
     function frame(now) {
@@ -1458,16 +1464,17 @@ function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requ
       else if (mode === 'doors') document.querySelector('#doors-stage').classList.toggle('is-rattling', progress < .72 && Math.floor(progress * 25) % 2 === 0);
       else if (mode === 'shuffle') {
         const eased = 1 - Math.pow(1 - progress, 3);
-        const offset = eased * shuffleSteps * 54;
-        const index = Math.min(shuffleSteps, Math.floor(offset / 54));
+        const offset = eased * shuffleSteps;
+        const index = Math.min(shuffleSteps, Math.floor(offset));
+        Array.from(ticker.children).forEach((row, position) => { row.textContent = shuffledTitles[Math.max(0, Math.min(shuffleSteps, index + position - 1))]; });
         document.querySelector('#shuffle-current').textContent = shuffledTitles[index];
-        ticker.style.transform = `translateY(-${offset}px)`;
+        ticker.style.transform = `translateY(-${144 + (offset - index) * 96}px)`;
       }
       if (progress < 1) { requestAnimationFrame(frame); return; }
       rotation %= full; spinning = false; input.disabled = false; resetButton.disabled = false;
       document.querySelector('#collection-shortcut').disabled = false;
       document.querySelector('#edit-toggle').disabled = false; document.querySelector('#finish-edit').disabled = false;
-      document.querySelector('#clear-history').disabled = false; document.querySelector('#history-toggle').disabled = false; themeSelect.disabled = false; languageSelect.disabled = false; watchButton.disabled = false; drawModeSelect.disabled = true; drawPaceSelect.disabled = false; cinemaButton.disabled = false;
+      document.querySelector('#clear-history').disabled = false; document.querySelector('#history-toggle').disabled = false; themeSelect.disabled = false; languageSelect.disabled = false; watchButton.disabled = false; drawModeSelect.disabled = true; drawPaceSelect.disabled = false;
       setAdvancedControlsDisabled(false);
       rollSound.pause(); rollSound.currentTime = 0;
       winningIndex = winner; if (mode === 'wheel') drawWheel(movies);
@@ -1478,7 +1485,11 @@ function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requ
           const reveal = document.createElement('span'); reveal.className = 'door-reveal'; reveal.textContent = movies[winner].title; opened.append(reveal);
         }
       }
-      if (mode === 'shuffle') document.querySelector('#shuffle-current').textContent = movies[winner].title;
+      if (mode === 'shuffle') {
+        const finalTitle = document.createElement('span'); finalTitle.textContent = movies[winner].title;
+        ticker.replaceChildren(finalTitle); ticker.classList.add('is-settled'); ticker.style.transform = 'translateY(-50%)';
+        document.querySelector('#shuffle-current').textContent = translate('resultLabel');
+      }
       const selectedMovie = movies[winner];
       for (const movie of sessionMovies) {
         const priorCount = history[movie.id]?.count ?? 0;
@@ -1494,7 +1505,7 @@ function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requ
       } else { marathonStatusKey = ''; marathonStatusArgs = []; }
       persistState(); renderHistory(); syncWatchButton();
       renderSessionPanel();
-      spinButton.innerHTML = spinIcon + `<span>${translate('spinAgain')}</span>`; spinButton.disabled = false;
+      spinButton.innerHTML = spinIcon + `<span>${translate(drawActionKey())}</span>`; spinButton.disabled = false;
       const result = document.querySelector('#result'); result.classList.add('winner', 'reveal');
       document.querySelector('#result-label').textContent = translate('resultLabel');
       document.querySelector('#result-title').textContent = selectedMovie.title;
@@ -1509,7 +1520,7 @@ function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requ
         rollSound.pause(); rollSound.currentTime = 0; endSound.pause(); endSound.currentTime = 0;
         spinning = false; winningIndex = -1;
         document.querySelector('#collection-shortcut').disabled = false;
-      input.disabled = false; resetButton.disabled = false; themeSelect.disabled = false; languageSelect.disabled = false; watchButton.disabled = false; drawModeSelect.disabled = false; drawPaceSelect.disabled = false; cinemaButton.disabled = false;
+      input.disabled = false; resetButton.disabled = false; themeSelect.disabled = false; languageSelect.disabled = false; watchButton.disabled = false; drawModeSelect.disabled = false; drawPaceSelect.disabled = false;
         for (const id of ['edit-toggle', 'finish-edit', 'clear-history', 'history-toggle']) document.querySelector(`#${id}`).disabled = false;
         setAdvancedControlsDisabled(false);
         spinButton.disabled = eligibleRecords().length === 0;
@@ -1529,17 +1540,6 @@ spinButton.addEventListener('click', () => spin());
 drawModeSelect.value = themeData.drawMode ?? 'wheel'; drawPaceSelect.value = themeData.drawPace ?? 'fast';
 drawModeSelect.addEventListener('change', () => { doorCandidates = []; spinButton.disabled = !eligibleRecords().length; document.querySelector('#doors').replaceChildren(); syncDrawMode(); persistState(); });
 drawPaceSelect.addEventListener('change', () => persistState());
-function setCinemaMode(enabled) {
-  document.body.classList.toggle('cinema-mode', enabled);
-  cinemaButton.hidden = enabled; cinemaExitButton.hidden = !enabled;
-  cinemaButton.setAttribute('aria-pressed', String(enabled));
-  if (enabled && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
-  else if (!enabled && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
-}
-cinemaButton.addEventListener('click', () => setCinemaMode(true));
-cinemaExitButton.addEventListener('click', () => setCinemaMode(false));
-document.addEventListener?.('keydown', event => { if (event.key === 'Escape' && document.body.classList.contains('cinema-mode')) setCinemaMode(false); });
-document.addEventListener?.('fullscreenchange', () => { if (!document.fullscreenElement) { document.body.classList.remove('cinema-mode'); cinemaButton.hidden = false; cinemaExitButton.hidden = true; cinemaButton.setAttribute('aria-pressed', 'false'); } });
 resetButton.addEventListener('click', () => { if (!spinning) { input.value = activeTheme === 'christmas' ? CHRISTMAS_MOVIES.join('\n') : DEFAULT_MOVIES.join('\n'); updateList(); } });
 soundButton.addEventListener('click', () => setSound(!soundEnabled));
 languageSelect.value = language;

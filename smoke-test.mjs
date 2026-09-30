@@ -15,7 +15,7 @@ async function createApp(seed = {}, options = {}) {
     const classes = new Set();
     const value = selector.match(/#(?:filter|metadata)-mood-(light|scary|nostalgic)$/)?.[1] ?? (selector === '#marathon-count' ? '3' : selector === '#draw-mode' ? 'wheel' : selector === '#draw-pace' ? 'fast' : '');
     const options = ['#theme', '#portability-theme'].includes(selector) ? [{ textContent: '', value: 'halloween' }, { textContent: '', value: 'christmas' }] : selector === '#draw-mode' ? ['wheel', 'doors', 'shuffle'].map(value => ({ value, textContent: '' })) : selector === '#draw-pace' ? ['fast', 'suspense'].map(value => ({ value, textContent: '' })) : selector === '#playlist-import-mode' ? [{ textContent: '', value: 'merge' }, { textContent: '', value: 'replace' }] : selector === '#filter-duration' ? ['any', '90', '120', '150', '180'].map(value => ({ value, textContent: '' })) : [];
-    const element = { selector, value, textContent: '', innerHTML: '', disabled: false, checked: false, hidden: false, children: [], attributes: {}, listeners: {}, style: {}, dataset: {}, options, files: [], classList: { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, toggle(name, force) { if (force ?? !classes.has(name)) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) }, addEventListener(type, fn) { this.listeners[type] = fn; }, dispatch(type) { return this.listeners[type]?.({ target: this, preventDefault() {} }); }, setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name] ?? null; }, removeAttribute(name) { delete this.attributes[name]; }, replaceChildren() { this.children = []; if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options = []; }, append(...items) { this.children.push(...items); if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options.push(...items); }, querySelector(query) { const value = query.match(/\[value="([^"]+)"\]/)?.[1]; return this.options.find(option => option.value === value) ?? null; }, focus() { this.focused = true; }, click() { this.clicked = true; if (this.download) downloadNames.push(this.download); }, remove() { this.removed = true; } };
+    const element = { selector, value, textContent: '', innerHTML: '', disabled: false, checked: false, hidden: false, children: [], attributes: {}, listeners: {}, style: {}, dataset: {}, options, files: [], classList: { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, toggle(name, force) { if (force ?? !classes.has(name)) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) }, addEventListener(type, fn) { this.listeners[type] = fn; }, dispatch(type) { return this.listeners[type]?.({ target: this, preventDefault() {} }); }, setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name] ?? null; }, removeAttribute(name) { delete this.attributes[name]; }, replaceChildren(...items) { this.children = items; if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options = []; }, append(...items) { this.children.push(...items); if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options.push(...items); }, querySelector(query) { const value = query.match(/\[value="([^"]+)"\]/)?.[1]; return this.options.find(option => option.value === value) ?? null; }, focus() { this.focused = true; }, click() { this.clicked = true; if (this.download) downloadNames.push(this.download); }, remove() { this.removed = true; } };
     element.firstElementChild = { style: {} };
     return element;
   }
@@ -597,8 +597,6 @@ for (const count of [1, 2, 3, 9]) {
   const reloadedModeApp = await createApp({ 'cinema-roulette-v5': JSON.parse(modeApp.storage.get('cinema-roulette-v5')) });
   assert.equal(reloadedModeApp.node('#draw-mode').value, 'doors', 'draw mode survives a reload');
   assert.equal(reloadedModeApp.node('#draw-pace').value, 'suspense', 'draw pace survives a reload');
-  modeApp.sandbox.document.body.classList.add('cinema-mode');
-  modeApp.node('#cinema-exit').dispatch('click');
   modeApp.node('#spin').dispatch('click');
   const doors = modeApp.node('#doors').children;
   assert.equal(doors.length, Math.min(3, count), 'mystery doors only show available distinct movies');
@@ -609,6 +607,7 @@ for (const count of [1, 2, 3, 9]) {
   modeApp.animationFrames.shift()(0);
   const picked = await reveal;
   assert.equal(modeApp.node('#result-title').textContent, picked.movie, 'door result card matches the drawn title');
+  assert.ok(modeApp.node('#spin').innerHTML.includes('Escolher outra porta'));
   assert.equal(vm.runInContext('themeData.sessions.length', modeApp.sandbox), 1, 'opening a door records exactly one result');
   assert.equal(doors[0].getAttribute('aria-label').includes(picked.movie), true, 'the selected door reveals its title');
   assert.equal(doors[0].children.some(child => child.textContent === picked.movie), true, 'the selected door shows the movie title visually');
@@ -625,6 +624,10 @@ const shuffleResult = shuffleApp.sandbox && shuffleApp.node('#spin').dispatch('c
 shuffleApp.animationFrames.shift()(0);
 const shuffled = await shuffleResult;
 assert.equal(shuffleApp.node('#result-title').textContent, shuffled.movie, 'title shuffle reveals the selected movie in the shared result card');
+assert.equal(shuffleApp.node('#shuffle-ticker').children.length, 1, 'the final title is a single centred row');
+assert.equal(shuffleApp.node('#shuffle-ticker').children[0].textContent, shuffled.movie);
+assert.equal(shuffleApp.node('#shuffle-ticker').style.transform, 'translateY(-50%)');
+assert.ok(shuffleApp.node('#spin').innerHTML.includes('Sortear outro filme'));
 assert.equal(vm.runInContext('themeData.sessions.length', shuffleApp.sandbox), 1, 'title shuffle records exactly once');
 for (const mode of ['wheel', 'shuffle']) for (const count of [1, 2, 3, 9]) {
   const drawApp = await createApp(); drawApp.setReduceMotion(true);
