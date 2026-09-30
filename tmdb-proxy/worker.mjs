@@ -40,7 +40,7 @@ function upstreamPath(path, incoming) {
     if (year && /^\d{4}$/.test(year)) target.searchParams.set('primary_release_year', year);
   } else if (details) {
     // Search cards need the verified external IMDb ID alongside TMDB details.
-    target.searchParams.set('append_to_response', 'external_ids');
+    target.searchParams.set('append_to_response', 'external_ids,credits');
   } else {
     target.searchParams.set('page', '1');
   }

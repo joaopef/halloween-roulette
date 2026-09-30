@@ -514,10 +514,12 @@ function renderLanguage() {
   if (!spinning && winningIndex < 0) {
     document.querySelector('#result-label').textContent = translate('resultIdleLabel');
     document.querySelector('#result-title').textContent = translate('resultIdleTitle');
+  document.querySelector('#result-title').disabled = true;
     document.querySelector('#result-description').textContent = translate('resultIdleDescription');
   } else if (spinning) {
     document.querySelector('#result-label').textContent = translate('spinningLabel');
     document.querySelector('#result-title').textContent = translate('spinningTitle');
+  document.querySelector('#result-title').disabled = true;
     document.querySelector('#result-description').textContent = translate('spinningDescription');
   }
   if (!spinning) spinButton.innerHTML = spinIcon + `<span>${translate(drawActionKey())}</span>`;
@@ -863,7 +865,7 @@ function renderHistory() {
   const entries = Object.values(history).sort((a, b) => b.count - a.count || a.title.localeCompare(b.title));
   const shown = showAllHistory ? entries : entries.slice(0, HISTORY_LIMIT);
   for (const entry of shown) {
-    const row = document.createElement('li'); const name = document.createElement('span'); const badge = document.createElement('b');
+    const row = document.createElement('li'); const name = movieDetailsButton(playlistRecords().find(movie => movie.id === entry.id) ?? createMovie(entry.title)); const badge = document.createElement('b');
     name.textContent = entry.title; badge.textContent = translate('historyCount', entry.count); row.append(name, badge); list.append(row);
   }
   const total = entries.reduce((sum, entry) => sum + entry.count, 0);
@@ -1003,7 +1005,7 @@ function renderEligibility(redraw = true) {
   document.querySelector('#count').textContent = total;
   const preview = document.querySelector('#playlist-preview'); preview.replaceChildren();
   for (const movie of playlistRecords().slice(0, 5)) {
-    const item = document.createElement('li'); item.textContent = movie.title; preview.append(item);
+    const item = document.createElement('li'); item.append(movieDetailsButton(movie)); preview.append(item);
   }
 
   document.querySelector('#eligible-count').textContent = eligible.length;
@@ -1083,6 +1085,80 @@ function movieIsAdded(movie) {
   const id = knownTmdbId(movie);
   return playlistRecords().some(existing => (id && id === knownTmdbId(existing)) || existing.id === movie.id || sameMovieTitle(existing, movie));
 }
+const movieDetailCache = new Map();
+let movieDetailRequest = null;
+function movieDetailsButton(movie, label = movie.title) {
+  const button = document.createElement('button'); button.type = 'button'; button.className = 'movie-title-action'; button.textContent = label;
+  button.setAttribute('aria-haspopup', 'dialog');
+  button.addEventListener('click', () => openMovieDetails(movie)); return button;
+}
+function renderMovieDetails(movie, details = null) {
+  document.querySelector('#movie-detail-title').textContent = movie.title;
+  const body = document.querySelector('#movie-detail-body'); body.replaceChildren();
+  const grid = document.createElement('div'); grid.className = 'movie-detail-grid';
+  const posterUrl = safePosterUrl(details ? imageUrlFromPath(details.poster_path) || movie.posterUrl : movie.posterUrl);
+  if (posterUrl) { const image = document.createElement('img'); image.className = 'movie-detail-poster'; image.src = posterUrl; image.alt = translate('posterAlt', displayTitle(movie)); image.addEventListener('error', () => image.remove()); grid.append(image); }
+  const info = document.createElement('div');
+  const meta = document.createElement('p'); meta.className = 'movie-detail-meta';
+  const runtime = details?.runtime || movie.runtimeMinutes;
+  const genres = details?.genres?.map(genre => genre.name) ?? movie.genres;
+  meta.textContent = [movie.year, runtime ? `${runtime} min` : null, genres.map(genreLabel).join(' · ')].filter(Boolean).join(' · '); info.append(meta);
+  const rating = details?.vote_average ?? movie.tmdbRating;
+  if (Number.isFinite(rating) && rating > 0) {
+    const badge = document.createElement('p'); badge.className = 'movie-detail-rating';
+    badge.textContent = `★ TMDB ${rating.toFixed(1)}/10${details?.vote_count ? ` · ${details.vote_count} ${language === 'pt-PT' ? 'votos' : 'votes'}` : ''}`; info.append(badge);
+  }
+  const synopsis = document.createElement('p'); synopsis.className = 'movie-detail-overview';
+  synopsis.textContent = details?.overview || movie.overview?.[language] || movie.overview?.en || (language === 'pt-PT' ? 'Sinopse indisponível.' : 'Synopsis unavailable.'); info.append(synopsis);
+  grid.append(info); body.append(grid);
+  const cast = document.createElement('p'); cast.className = 'movie-detail-cast';
+  const names = details?.credits?.cast?.slice(0, 6).map(actor => actor.name).filter(Boolean) ?? [];
+  cast.textContent = `${language === 'pt-PT' ? 'Elenco' : 'Cast'}: ${names.length ? names.join(' · ') : language === 'pt-PT' ? 'indisponível' : 'unavailable'}`; body.append(cast);
+  const director = details?.credits?.crew?.filter(person => person.job === 'Director').map(person => person.name) ?? [];
+  if (director.length) { const line = document.createElement('p'); line.className = 'movie-detail-meta'; line.textContent = `${language === 'pt-PT' ? 'Realização' : 'Director'}: ${director.join(', ')}`; body.append(line); }
+  const id = details?.id ?? movie.tmdbId ?? knownTmdbId(movie);
+  if (id) { const link = document.createElement('a'); link.className = 'imdb-link'; link.href = `https://www.themoviedb.org/movie/${id}`; link.target = '_blank'; link.rel = 'noreferrer'; link.textContent = language === 'pt-PT' ? 'Ver no TMDB ↗' : 'View on TMDB ↗'; body.append(link); }
+}
+async function openMovieDetails(movie) {
+  if (spinning) return;
+  movieDetailRequest?.abort(); movieDetailRequest = new AbortController();
+  const { signal } = movieDetailRequest;
+  const dialog = document.querySelector('#movie-dialog');
+  renderMovieDetails(movie);
+  document.querySelector('#movie-dialog-close').setAttribute('aria-label', language === 'pt-PT' ? 'Fechar detalhes' : 'Close details');
+  if (!dialog.open) dialog.showModal();
+  document.body.classList.add('movie-modal-open');
+  const status = document.querySelector('#movie-detail-status');
+  if (!tmdbConfig()) { status.textContent = language === 'pt-PT' ? 'A mostrar os dados disponíveis na tua lista.' : 'Showing the data available in your list.'; return; }
+  status.textContent = language === 'pt-PT' ? 'A carregar detalhes…' : 'Loading details…';
+  try {
+    let id = knownTmdbId(movie);
+    if (!id) {
+      const response = await tmdbRequest('search/movie', { query: displayTitle(movie), primary_release_year: movie.year, language: 'en-US' }, signal);
+      const matches = (response.results ?? []).filter(item => sameMovieTitle(movie, normalizeTmdbMovie(item, null) ?? {}));
+      if (matches.length === 1) id = matches[0].id;
+    }
+    if (!id) { status.textContent = language === 'pt-PT' ? 'Não encontrei uma correspondência exata no TMDB.' : 'No exact TMDB match found.'; return; }
+    const key = `${language}:${id}`;
+    const details = movieDetailCache.get(key) ?? await tmdbRequest(`movie/${id}`, { language: language === 'pt-PT' ? 'pt-PT' : 'en-US', append_to_response: 'external_ids,credits' }, signal);
+    if (signal.aborted) return;
+    movieDetailCache.set(key, details); renderMovieDetails(movie, details); status.textContent = '';
+  } catch (error) {
+    if (signal.aborted) return;
+    status.textContent = language === 'pt-PT' ? 'Não foi possível carregar mais dados. A informação da tua lista continua disponível.' : 'Could not load more data. Your local movie information is still available.';
+  }
+}
+document.querySelector('#movie-dialog-close').addEventListener('click', () => document.querySelector('#movie-dialog').close());
+document.querySelector('#movie-dialog').addEventListener('close', () => { movieDetailRequest?.abort(); document.body.classList.remove('movie-modal-open'); });
+document.querySelector('#movie-dialog').addEventListener('click', event => {
+  if (event.target !== event.currentTarget) return;
+  const bounds = event.currentTarget.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) event.currentTarget.close();
+});
+document.querySelector('#result-title').setAttribute('aria-haspopup', 'dialog');
+document.querySelector('#result-title').addEventListener('click', () => {
+  const movie = playlistRecords().find(movie => movie.id === lastResultMovieId); if (movie) openMovieDetails(movie);
+});
 function createCatalogCard(movie) {
   const card = document.createElement('article'); card.className = 'movie-card';
   const poster = document.createElement('div'); poster.className = 'movie-poster';
@@ -1098,7 +1174,8 @@ function createCatalogCard(movie) {
     poster.append(image);
   }
   const body = document.createElement('div'); body.className = 'movie-card-content';
-  const heading = document.createElement('h3'); heading.textContent = displayTitle(movie);
+  const heading = document.createElement('h3'); heading.append(movieDetailsButton(movie, displayTitle(movie)));
+  poster.addEventListener('click', () => openMovieDetails(movie));
   const meta = document.createElement('p'); meta.className = 'movie-card-meta';
   const year = Number.isSafeInteger(movie.year) ? movie.year : (String(movie.title).match(/\((\d{4})\)\s*$/)?.[1] ?? null);
   const duration = Number.isSafeInteger(movie.runtimeMinutes) && movie.runtimeMinutes > 0 ? translate('durationValue', movie.runtimeMinutes) : translate('durationUnknown');
@@ -1379,12 +1456,13 @@ function drawWheel(movies = eligibleRecords()) {
   items.forEach((movie, index) => {
     const angle = -Math.PI / 2 + index * step;
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 495, angle, angle + step); ctx.closePath();
-    const bright = index % 2 === 0;
+    const seam = halloween && items.length > 1 && items.length % 2 === 1 && index === items.length - 1;
+    const bright = index % 2 === 0 && !seam;
     const gradient = ctx.createRadialGradient(0, 0, 75, 0, 0, 495);
     if (halloween) {
-      gradient.addColorStop(0, bright ? '#87300b' : '#080a09');
-      gradient.addColorStop(0.48, bright ? '#dd6514' : '#151b18');
-      gradient.addColorStop(1, bright ? '#f59b3c' : '#26312a');
+      gradient.addColorStop(0, seam ? '#211128' : bright ? '#87300b' : '#080a09');
+      gradient.addColorStop(0.48, seam ? '#48284f' : bright ? '#dd6514' : '#151b18');
+      gradient.addColorStop(1, seam ? '#694171' : bright ? '#f59b3c' : '#26312a');
     } else {
       gradient.addColorStop(0, bright ? '#2a714f' : '#102b23');
       gradient.addColorStop(0.48, bright ? '#36845c' : '#194638');
@@ -1409,6 +1487,17 @@ function drawWheel(movies = eligibleRecords()) {
   for (const radius of [480, 150]) { ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.strokeStyle = halloween ? '#ffc27a80' : '#f6dda880'; ctx.lineWidth = radius === 480 ? 3 : 2; ctx.stroke(); }
   ctx.restore();
 }
+canvas.addEventListener('click', event => {
+  if (spinning) return;
+  const bounds = canvas.getBoundingClientRect();
+  const x = (event.clientX - bounds.left) / bounds.width * 1000 - 500;
+  const y = (event.clientY - bounds.top) / bounds.height * 1000 - 500;
+  if (Math.hypot(x, y) < 150 || Math.hypot(x, y) > 495) return;
+  const movies = eligibleRecords();
+  const angle = ((Math.atan2(y, x) - rotation + Math.PI / 2) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  const movie = movies[Math.floor(angle / (Math.PI * 2) * movies.length)];
+  if (movie) openMovieDetails(movie);
+});
 function updateList() {
   themeData.playlist = reconcilePlaylist(input.value);
   addExactEditorialMetadata(activeTheme, themeData);
@@ -1495,6 +1584,7 @@ function recordSession(movies, kind) {
 function renderPosterShuffle(movies, index, settled) {
   const strip = document.querySelector('#poster-strip');
   strip.classList.toggle('is-settled', settled);
+  strip.setAttribute('aria-hidden', String(spinning));
   strip.replaceChildren();
   if (!movies.length) { document.querySelector('#poster-current').textContent = translate('noFilterMatches'); return; }
   const offsets = settled || movies.length === 1 ? [0] : [-1, 0, 1];
@@ -1514,7 +1604,8 @@ function renderPosterShuffle(movies, index, settled) {
       image.addEventListener('error', () => { image.hidden = true; fallback.hidden = false; });
       artwork.append(image);
     }
-    const caption = document.createElement('p'); caption.textContent = movie.title;
+    const caption = movieDetailsButton(movie); caption.disabled = spinning;
+    if (!spinning) artwork.addEventListener('click', () => openMovieDetails(movie));
     tile.append(artwork, caption); strip.append(tile);
   }
   document.querySelector('#poster-current').textContent = settled ? translate('resultLabel') : translate('modePosters');
@@ -1642,6 +1733,7 @@ function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requ
       const result = document.querySelector('#result'); result.classList.add('winner', 'reveal');
       document.querySelector('#result-label').textContent = translate('resultLabel');
       document.querySelector('#result-title').textContent = selectedMovie.title;
+      document.querySelector('#result-title').disabled = false;
       document.querySelector('#result-description').textContent = translate('resultDescription');
       document.querySelector('#hint').textContent = translate('resultHint');
       setTimeout(() => { if (!spinning) drawModeSelect.disabled = false; }, 400);
@@ -1660,6 +1752,7 @@ function spin(selectedPool = eligibleRecords(), count = 1, kind = 'single', requ
         spinButton.disabled = eligibleRecords().length === 0;
         spinButton.innerHTML = spinIcon + `<span>${translate('spin')}</span>`;
         document.querySelector('#result-title').textContent = translate('drawError');
+        document.querySelector('#result-title').disabled = true;
         document.querySelector('#result-label').textContent = translate('resultIdleLabel');
         document.querySelector('#result-description').textContent = '';
         console.error('Movie draw failed', error);

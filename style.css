@@ -185,6 +185,26 @@ body[data-theme="halloween"] .wheel-caption::after { right: 9px; }
 #related-more[hidden] { display: none; }
 #related-more:disabled { opacity: .55; cursor: wait; }
 #related-more:focus-visible { outline: 3px solid #ffba62; outline-offset: 4px; }
+.movie-title-action { padding: 0; border: 0; background: none; color: inherit; font: inherit; line-height: inherit; text-align: inherit; cursor: pointer; }
+.movie-title-action:hover:not(:disabled) { color: #ffc179; text-decoration: underline; text-underline-offset: 4px; }
+.movie-title-action:disabled { opacity: 1; cursor: default; }
+.movie-title-action:focus-visible { outline: 2px solid #ffbc6b; outline-offset: 4px; border-radius: 2px; }
+.movie-card .movie-poster { cursor: pointer; }
+.movie-dialog { width: min(560px, calc(100% - 28px)); max-height: 85dvh; overflow: auto; padding: 28px; border: 1px solid #99633a; border-radius: 14px; color: #f2dfca; background: linear-gradient(135deg,#241a13,#11100d); box-shadow: 0 24px 90px #000b; }
+.movie-dialog::backdrop { background: #000a; backdrop-filter: blur(5px); }
+body.movie-modal-open { overflow: hidden; }
+.movie-dialog h2 { margin: 0 34px 20px 0; font: 600 29px/1.1 'Cormorant Garamond', Georgia, serif; color: #ffcf98; }
+.movie-dialog-close { position: absolute; right: 12px; top: 10px; width: 36px; height: 36px; border: 1px solid #8a5b37; border-radius: 50%; color: #ffce98; background: #ffffff08; font-size: 25px; cursor: pointer; }
+.movie-dialog :focus-visible { outline: 2px solid #ffbc6b; outline-offset: 3px; }
+.movie-detail-grid { display: flex; align-items: flex-start; gap: 18px; }
+.movie-detail-grid>div { min-width: 0; flex: 1; }
+.movie-detail-poster { width: 120px; max-height: 180px; object-fit: cover; border-radius: 6px; }
+.movie-detail-meta { margin: 0 0 12px; color: #c3a98d; font-size: 12px; line-height: 1.5; }
+.movie-detail-rating { margin: 10px 0; color: #ffc76e; font-size: 13px; }
+.movie-detail-overview { margin: 0; font-size: 13px; line-height: 1.6; }
+.movie-detail-cast { margin: 20px 0 12px; padding-top: 15px; border-top: 1px solid #80502f55; font-size: 12px; line-height: 1.6; }
+#movie-detail-status { color: #ba9874; font-size: 12px; }
+@media (max-width: 450px) { .movie-dialog { padding: 24px 18px; } .movie-detail-grid { gap: 12px; } .movie-detail-poster { width: 85px; max-height: 128px; } .movie-dialog h2 { font-size: 26px; } }
 .poster-stage { min-height: 440px; padding: 16px 14px 20px; background: radial-gradient(ellipse at 50% 65%, #a24f2344, transparent 65%), #130e0bf2; }
 .poster-stage .shuffle-marquee { margin: 0; }
 .poster-strip { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 354px; padding: 20px 0 12px; }
@@ -193,8 +213,8 @@ body[data-theme="halloween"] .wheel-caption::after { right: 9px; }
 .poster-slide.is-current { flex-basis: 190px; opacity: 1; transform: none; }
 .poster-slide .movie-poster { border: 1px solid #ad6939; border-radius: 7px; box-shadow: 0 10px 25px #0009; }
 .poster-slide.is-current .movie-poster { border-color: #ffb664; box-shadow: 0 0 0 3px #f79a3622, 0 0 30px #e57c302f, 0 15px 35px #000b; }
-.poster-slide p { margin: 10px 0 0; color: #f8d7ac; font: 600 14px/1.35 'DM Sans', sans-serif; text-align: center; overflow-wrap: anywhere; }
-.poster-slide:not(.is-current) p { display: none; }
+.poster-slide .movie-title-action { margin: 10px 0 0; color: #f8d7ac; font: 600 14px/1.35 'DM Sans', sans-serif; text-align: center; overflow-wrap: anywhere; }
+.poster-slide:not(.is-current) .movie-title-action { display: none; }
 .poster-strip.is-settled .is-current { animation: poster-reveal .35s ease-out; }
 .poster-slide .poster-fallback { justify-content: center; text-align: center; padding: 12px; }
 .poster-slide .poster-fallback span { font-size: 50px; color: #ffa440; opacity: 1; }

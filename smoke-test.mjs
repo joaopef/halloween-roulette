@@ -15,7 +15,7 @@ async function createApp(seed = {}, options = {}) {
     const classes = new Set();
     const value = selector.match(/#(?:filter|metadata)-mood-(light|scary|nostalgic)$/)?.[1] ?? (selector === '#marathon-count' ? '3' : selector === '#draw-mode' ? 'wheel' : selector === '#draw-pace' ? 'fast' : '');
     const options = ['#theme', '#portability-theme'].includes(selector) ? [{ textContent: '', value: 'halloween' }, { textContent: '', value: 'christmas' }] : selector === '#draw-mode' ? ['wheel', 'doors', 'shuffle', 'posters'].map(value => ({ value, textContent: '' })) : selector === '#draw-pace' ? ['fast', 'suspense'].map(value => ({ value, textContent: '' })) : selector === '#playlist-import-mode' ? [{ textContent: '', value: 'merge' }, { textContent: '', value: 'replace' }] : selector === '#filter-duration' ? ['any', '90', '120', '150', '180'].map(value => ({ value, textContent: '' })) : [];
-    const element = { selector, value, textContent: '', innerHTML: '', disabled: false, checked: false, hidden: false, children: [], attributes: {}, listeners: {}, style: {}, dataset: {}, options, files: [], classList: { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, toggle(name, force) { if (force ?? !classes.has(name)) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) }, addEventListener(type, fn) { this.listeners[type] = fn; }, dispatch(type) { return this.listeners[type]?.({ target: this, preventDefault() {} }); }, setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name] ?? null; }, removeAttribute(name) { delete this.attributes[name]; }, replaceChildren(...items) { this.children = items; if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options = []; }, append(...items) { this.children.push(...items); if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options.push(...items); }, querySelector(query) { const value = query.match(/\[value="([^"]+)"\]/)?.[1]; return this.options.find(option => option.value === value) ?? null; }, focus() { this.focused = true; }, click() { this.clicked = true; if (this.download) downloadNames.push(this.download); }, remove() { this.removed = true; } };
+    const element = { selector, value, textContent: '', innerHTML: '', disabled: false, checked: false, hidden: false, children: [], attributes: {}, listeners: {}, style: {}, dataset: {}, options, files: [], classList: { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, toggle(name, force) { if (force ?? !classes.has(name)) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) }, addEventListener(type, fn) { this.listeners[type] = fn; }, dispatch(type) { return this.listeners[type]?.({ target: this, preventDefault() {} }); }, setAttribute(name, value) { this.attributes[name] = value; }, getAttribute(name) { return this.attributes[name] ?? null; }, removeAttribute(name) { delete this.attributes[name]; }, replaceChildren(...items) { this.children = items; if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options = []; }, append(...items) { this.children.push(...items); if (this.selector.startsWith('select') || ['#surprise-mood', '#surprise-duration', '#metadata-movie'].includes(this.selector)) this.options.push(...items); }, querySelector(query) { const value = query.match(/\[value="([^"]+)"\]/)?.[1]; return this.options.find(option => option.value === value) ?? null; }, showModal() { this.open = true; }, close() { this.open = false; this.listeners.close?.(); }, focus() { this.focused = true; }, click() { this.clicked = true; if (this.download) downloadNames.push(this.download); }, remove() { this.removed = true; } };
     element.firstElementChild = { style: {} };
     return element;
   }
@@ -23,7 +23,7 @@ async function createApp(seed = {}, options = {}) {
     if (!nodes.has(selector)) nodes.set(selector, makeElement(selector));
     return nodes.get(selector);
   }
-  const canvasContext = { createRadialGradient() { return { addColorStop() {} }; }, clearRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {}, moveTo() {}, arc() {}, closePath() {}, fill() {}, stroke() {}, fillText() {}, measureText: text => ({ width: text.length * 14 }) };
+  const canvasContext = { gradients: [], createRadialGradient() { const stops=[]; this.gradients.push(stops); return { addColorStop(offset,color) { stops.push([offset,color]); } }; }, clearRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {}, moveTo() {}, arc() {}, closePath() {}, fill() {}, stroke() {}, fillText() {}, measureText: text => ({ width: text.length * 14 }) };
   node('#wheel').getContext = () => canvasContext;
   const storage = new Map(Object.entries(seed).map(([key, value]) => [key, JSON.stringify(value)]));
   const requests = [];
@@ -514,7 +514,7 @@ const tmdbCalls = [];
 const onlineCatalog = await createApp({}, { window: tmdbConfig, fetch: async (url, requestOptions) => {
   const parsed = new URL(url); tmdbCalls.push({ url: parsed.href, requestOptions });
   if (parsed.pathname.endsWith('/search/movie')) return { ok: true, json: async () => ({ results: [{ id: 123, title: 'Localized Film', original_title: 'Original Film', release_date: '2020-01-02', poster_path: '/poster.jpg', vote_average: 7.2, overview: 'Search overview' }] }) };
-  if (parsed.pathname.endsWith('/movie/123')) return { ok: true, json: async () => ({ id: 123, title: 'Localized Film', original_title: 'Original Film', release_date: '2020-01-02', runtime: 95, genres: [{ name: 'Comedy' }], poster_path: '/poster.jpg', vote_average: 7.6, overview: 'Detailed overview', external_ids: { imdb_id: 'tt1234567' } }) };
+  if (parsed.pathname.endsWith('/movie/123')) return { ok: true, json: async () => ({ id: 123, title: 'Localized Film', original_title: 'Original Film', release_date: '2020-01-02', runtime: 95, genres: [{ name: 'Comedy' }], poster_path: '/poster.jpg', vote_average: 7.6, overview: 'Detailed overview', credits: { cast:[{name:'Actor One'},{name:'Actor Two'}], crew:[{name:'Director One',job:'Director'}] }, external_ids: { imdb_id: 'tt1234567' } }) };
   if (parsed.pathname.endsWith('/movie/123/recommendations')) return { ok: true, json: async () => ({ results: [{ id: 123, title: 'Original Film', original_title: 'Original Film', release_date: '2020-01-02' }, { id: 456, title: 'Related Film', original_title: 'Related Film', release_date: '1980-05-01', vote_average: 6.5, overview: 'A haunted story.', genre_ids: [27] }] }) };
   if (parsed.pathname.endsWith('/recommendations')) return { ok: true, json: async () => ({ results: [] }) };
   throw new Error(`Unexpected TMDB request: ${parsed.pathname}`);
@@ -535,7 +535,25 @@ assert.equal(onlineCatalog.node('#count').textContent, 20);
 assert.equal(vm.runInContext('playlistRecords().at(-1).tmdbId', onlineCatalog.sandbox), 123);
 await vm.runInContext('loadRelatedRecommendations()', onlineCatalog.sandbox);
 assert.equal(onlineCatalog.node('#related-results').children.length, 1, 'related results omit a film already on the wheel');
-assert.equal(vm.runInContext('relatedResults.children[0].children[1].children[0].textContent', onlineCatalog.sandbox), 'Related Film');
+assert.equal(vm.runInContext('relatedResults.children[0].children[1].children[0].children[0].textContent', onlineCatalog.sandbox), 'Related Film');
+const beforeDetailCalls = onlineCatalog.requests.length;
+await vm.runInContext('openMovieDetails(playlistRecords().at(-1))', onlineCatalog.sandbox);
+assert.equal(onlineCatalog.node('#movie-dialog').open,true,'movie details open in a modal');
+assert.equal(onlineCatalog.node('#movie-detail-title').textContent,'Original Film (2020)');
+assert.ok(onlineCatalog.node('#movie-detail-body').children.some(element=>element.textContent.includes('Actor One')),'verified cast is displayed');
+assert.ok(onlineCatalog.node('#movie-detail-body').children.some(element=>element.textContent.includes('Director One')),'director is displayed');
+onlineCatalog.node('#movie-dialog-close').dispatch('click');
+assert.equal(onlineCatalog.node('#movie-dialog').open,false);
+await vm.runInContext('openMovieDetails(playlistRecords().at(-1))',onlineCatalog.sandbox);
+assert.equal(onlineCatalog.requests.length,beforeDetailCalls+1,'reopening movie details uses the in-memory cache');
+onlineCatalog.node('#movie-dialog-close').dispatch('click');
+const localDetails = await createApp();
+await vm.runInContext("openMovieDetails(createMovie('My handwritten film'))",localDetails.sandbox);
+assert.equal(localDetails.node('#movie-dialog').open,true,'manual films work offline');
+assert.equal(localDetails.requests.length,0,'offline details do not query external services');
+vm.runInContext('ctx.gradients = []; drawWheel(playlistRecords())',localDetails.sandbox);
+assert.equal(vm.runInContext("ctx.gradients.filter(stops=>stops.at(-1)[1]==='#694171').length",localDetails.sandbox),1,'an odd wheel has one purple closing segment');
+assert.notEqual(vm.runInContext('ctx.gradients[0].at(-1)[1]',localDetails.sandbox),vm.runInContext('ctx.gradients.at(-1).at(-1)[1]',localDetails.sandbox),'first and last segments differ');
 assert.equal(vm.runInContext("movieIsAdded({title:'HÓCUS   PÓCUS', tmdbId:10439})", onlineCatalog.sandbox), true, 'title without a year and accents matches the existing film');
 assert.equal(vm.runInContext("movieIsAdded({title:'Dont Look Under the Bed (1999)'})", onlineCatalog.sandbox), true, 'apostrophes do not produce duplicate recommendations');
 assert.equal(vm.runInContext("movieIsAdded({title:'Abracadabra (1993)', tmdbId:10439})", onlineCatalog.sandbox), true, 'verified TMDB identity also matches translated titles');
@@ -557,7 +575,7 @@ assert.equal(vm.runInContext('relatedCache.movies.some(movie=>movie.tmdbId===104
 await extendedCatalog.node('#related-more').dispatch('click');
 assert.equal(extendedCatalog.node('#related-results').children.length,32,'more recommendations exposes another batch without the old eight-film limit');
 vm.runInContext('addCatalogMovie(relatedCache.movies[0])',extendedCatalog.sandbox);
-assert.equal(vm.runInContext('relatedResults.children.some(card=>card.children[1].children[0].textContent===displayTitle(relatedCache.movies[0]))',extendedCatalog.sandbox),false,'adding a recommendation immediately removes its card');
+assert.equal(vm.runInContext('relatedResults.children.some(card=>card.children[1].children[0].children[0].textContent===displayTitle(relatedCache.movies[0]))',extendedCatalog.sandbox),false,'adding a recommendation immediately removes its card');
 
 const noResultCatalog = await createApp({}, { window: tmdbConfig, fetch: async () => ({ ok: true, json: async () => ({ results: [] }) }) });
 noResultCatalog.node('#catalog-search').value = 'No such film';
@@ -601,6 +619,8 @@ try {
   assert.equal(upstreamRequest.url.searchParams.has('api_key'), false);
   assert.equal(upstreamRequest.init.headers.Authorization, 'Bearer secret-token-for-server', 'server token is sent only from the Worker to TMDB');
   assert.equal(await proxySearch.text(), '{"results":[]}');
+  await tmdbProxy.fetch(requestToProxy('movie/10439', { headers: { 'CF-Connecting-IP': '203.0.113.10' } }), { TMDB_API_READ_ACCESS_TOKEN: 'secret-token-for-server', RATE_LIMITER: passedRateLimiter });
+  assert.equal(upstreamRequest.url.searchParams.get('append_to_response'),'external_ids,credits','movie details include verified cast and crew');
 } finally { globalThis.fetch = originalFetch; }
 
 const rows = new Map();
