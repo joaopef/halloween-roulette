@@ -1,3 +1,34 @@
+// Verified identities used only for duplicate detection and themed recommendation seeds.
+const HALLOWEEN_TMDB_IDS = {
+  "Beetlejuice (1988)": 4011,
+  "Casper (1995)": 8839,
+  "Coraline (2009)": 14836,
+  "Don't Look Under The Bed (1999)": 70772,
+  "Halloween (1978)": 948,
+  "Halloweentown (1998)": 27850,
+  "Halloweentown II Kalabars Revenge (2001)": 34205,
+  "Haunted Mansion (2023)": 616747,
+  "Hocus Pocus (1993)": 10439,
+  "Hocus Pocus 2 (2022)": 642885,
+  "It's The Great Pumpkin, Charlie Brown (1966)": 13353,
+  "Lonesome Ghosts (1937)": 32428,
+  "Mickey's House Of Villains (2001)": 22643,
+  "Muppets Haunted Mansion (2021)": 826914,
+  "Something Wicked This Way Comes (1983)": 24808,
+  "The Black Cauldron (1985)": 10957,
+  "The Nightmare Before Christmas (1993)": 9479,
+  "The Orphanage (2007)": 6537,
+  "Trick 'r Treat (2007)": 23202,
+  "The Addams Family (1991)": 2907,
+  "The Addams Family Values (1993)": 2758,
+  "Frankenweenie (2012)": 62214,
+  "ParaNorman (2012)": 77174,
+  "The Witches (1990)": 10166,
+  "The Others (2001)": 1933,
+  "Gremlins (1984)": 927,
+  "The Conjuring (2013)": 138843
+};
+
 // Verified TMDB poster paths for the curated Halloween titles (2026-09-30).
 // Mickey’s House of Villains is dated 2002 by TMDB; the existing playlist title is preserved.
 const HALLOWEEN_POSTERS = {

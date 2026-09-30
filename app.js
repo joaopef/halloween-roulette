@@ -43,6 +43,8 @@ let showAllHistory = false;
 let lastResultMovieId = null;
 let selectedCollection = 'all';
 let remoteSearchResults = null;
+let relatedCache = { key: '', movies: [], seedIndex: 0, visible: 16, loading: false };
+let relatedController = null;
 let catalogRequestController = null;
 let catalogStatusOverride = '';
 let metadataStatusKey = '';
@@ -89,7 +91,7 @@ const COPY = {
     localCatalogStatus: 'Catálogo local curado. A pesquisa online TMDB não está ativa.', noCatalogResults: 'Não foram encontradas sugestões nesta coleção.', searchWorking: 'A pesquisar no catálogo TMDB…', tmdbSearchResults: count => `${count} resultados de pesquisa TMDB.`, tmdbNoResults: 'A pesquisa TMDB não encontrou filmes.', tmdbSearchError: 'Não foi possível contactar o catálogo TMDB. A mostrar as sugestões locais.',
     addMovie: title => `Adicionar ${title} à roleta`, alreadyAdded: 'Já adicionado', addToWheel: 'Adicionar à roleta', alreadyOnWheel: 'Já está na roleta', curatedLabel: 'Sugestão curada', tmdbLabel: 'Dados TMDB', posterUnavailable: 'Cartaz indisponível', posterAlt: title => `Cartaz de ${title}`,
     durationValue: minutes => `${minutes} min`, durationUnknown: 'Duração desconhecida', tmdbRating: rating => `TMDB ${rating.toFixed(1)}`, imdbLink: 'IMDb', noGenres: 'Géneros indisponíveis',
-    relatedTitle: 'Sugestões relacionadas do TMDB', relatedNoIds: 'A tua playlist ainda não tem IDs TMDB para pedir recomendações relacionadas.', relatedOffline: 'As recomendações relacionadas ficam disponíveis quando o serviço TMDB estiver configurado.', relatedLoading: 'A carregar sugestões relacionadas…', relatedEmpty: 'O TMDB não devolveu sugestões relacionadas.', relatedError: 'Não foi possível carregar sugestões relacionadas.',
+    relatedTitle: 'Mais filmes para a noite de Halloween', relatedMore: 'Mais recomendações', relatedCount: count => `${count} sugestões novas · terror e fantasia assombrada`, relatedNoIds: 'A tua playlist ainda não tem IDs TMDB para pedir recomendações relacionadas.', relatedOffline: 'As recomendações relacionadas ficam disponíveis quando o serviço TMDB estiver configurado.', relatedLoading: 'A carregar sugestões relacionadas…', relatedEmpty: 'O TMDB não devolveu sugestões relacionadas.', relatedError: 'Não foi possível carregar sugestões relacionadas.',
     tmdbNotice: 'Este produto utiliza a API TMDB, mas não é aprovado nem certificado pelo TMDB.', tmdbLogoAlt: 'The Movie Database (TMDB)',
     historyEyebrow: 'AS SESSÕES PASSADAS', wallTitle: 'Mural da Fama', clearHistory: 'Limpar histórico', historyNote: 'Os sorteios ficam guardados apenas neste navegador.',
     historyStats: (movies, draws) => `${movies} ${movies === 1 ? 'filme diferente' : 'filmes diferentes'} · ${draws} ${draws === 1 ? 'sorteio' : 'sorteios'}`,
@@ -125,7 +127,7 @@ const COPY = {
     localCatalogStatus: 'Curated local catalogue. TMDB online search is not active.', noCatalogResults: 'No suggestions were found in this collection.', searchWorking: 'Searching the TMDB catalogue…', tmdbSearchResults: count => `${count} TMDB search results.`, tmdbNoResults: 'TMDB search found no movies.', tmdbSearchError: 'Could not reach the TMDB catalogue. Showing local suggestions.',
     addMovie: title => `Add ${title} to the wheel`, alreadyAdded: 'Already added', addToWheel: 'Add to the wheel', alreadyOnWheel: 'Already on the wheel', curatedLabel: 'Curated suggestion', tmdbLabel: 'TMDB data', posterUnavailable: 'Poster unavailable', posterAlt: title => `Poster for ${title}`,
     durationValue: minutes => `${minutes} min`, durationUnknown: 'Duration unknown', tmdbRating: rating => `TMDB ${rating.toFixed(1)}`, imdbLink: 'IMDb', noGenres: 'Genres unavailable',
-    relatedTitle: 'Related TMDB suggestions', relatedNoIds: 'Your playlist has no TMDB IDs yet, so related recommendations are unavailable.', relatedOffline: 'Related recommendations will be available when the TMDB service is configured.', relatedLoading: 'Loading related suggestions…', relatedEmpty: 'TMDB returned no related suggestions.', relatedError: 'Related suggestions could not be loaded.',
+    relatedTitle: 'More movies for Halloween night', relatedMore: 'More recommendations', relatedCount: count => `${count} new suggestions · horror and haunted fantasy`, relatedNoIds: 'Your playlist has no TMDB IDs yet, so related recommendations are unavailable.', relatedOffline: 'Related recommendations will be available when the TMDB service is configured.', relatedLoading: 'Loading related suggestions…', relatedEmpty: 'TMDB returned no related suggestions.', relatedError: 'Related suggestions could not be loaded.',
     tmdbNotice: 'This product uses the TMDB API but is not endorsed or certified by TMDB.', tmdbLogoAlt: 'The Movie Database (TMDB)',
     historyEyebrow: 'PAST MOVIE NIGHTS', wallTitle: 'Wall of Fame', clearHistory: 'Clear history', historyNote: 'Draws are stored only in this browser.',
     historyStats: (movies, draws) => `${movies} unique ${movies === 1 ? 'movie' : 'movies'} · ${draws} ${draws === 1 ? 'draw' : 'draws'}`,
@@ -475,7 +477,9 @@ function renderLanguage() {
     button.classList.toggle('is-selected', collection === selectedCollection);
     button.setAttribute('aria-pressed', String(collection === selectedCollection));
   });
-  document.querySelector('#related-title').textContent = translate('relatedTitle');
+  document.querySelector('#related-title').textContent = activeTheme === 'halloween' ? translate('relatedTitle') : (language === 'pt-PT' ? 'Sugestões relacionadas do TMDB' : 'Related TMDB suggestions');
+  document.querySelector('#related-more').textContent = translate('relatedMore');
+  renderRelatedRecommendations();
   document.querySelector('#share-status').textContent = shareStatusKey ? translate(shareStatusKey) : '';
   renderSharedPreview();
   renderPortability();
@@ -1044,7 +1048,7 @@ function matchesSearch(movie, query) {
   return year ? movie.year === Number(year) && (!titleQuery || titleMatches) : titleMatches || String(movie.year ?? '').includes(cleanQuery);
 }
 function localCatalogMatches() {
-  return (CURATED_CATALOG[activeTheme] ?? []).filter(movie => matchesCollection(movie) && matchesSearch(movie, catalogSearchInput.value));
+  return (CURATED_CATALOG[activeTheme] ?? []).filter(movie => matchesCollection(movie) && matchesSearch(movie, catalogSearchInput.value) && (catalogSearchInput.value.trim() || !movieIsAdded(movie)));
 }
 function safePosterUrl(value) {
   if (!value) return null;
@@ -1060,8 +1064,24 @@ function genreLabel(genre) {
   };
   return translated[language][genre] ?? genre;
 }
+function movieTitleKey(title) {
+  return String(title ?? '').replace(/\s*\(\d{4}\)\s*$/, '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().replace(/^(the|a|an) /, '');
+}
+function sameMovieTitle(first, second) {
+  const year = movie => movie.year ?? (Number(String(movie.title).match(/\((\d{4})\)\s*$/)?.[1]) || null);
+  const firstYear = year(first), secondYear = year(second);
+  if (firstYear && secondYear && firstYear !== secondYear) return false;
+  const firstKeys = [first.title, first.translatedTitle].filter(Boolean).map(movieTitleKey);
+  return [second.title, second.translatedTitle].filter(Boolean).some(title => firstKeys.includes(movieTitleKey(title)));
+}
+function knownTmdbId(movie) {
+  if (Number.isSafeInteger(movie.tmdbId)) return movie.tmdbId;
+  const title = Object.keys(HALLOWEEN_TMDB_IDS).find(title => sameMovieTitle(movie, { title }));
+  return title ? HALLOWEEN_TMDB_IDS[title] : null;
+}
 function movieIsAdded(movie) {
-  return playlistRecords().some(existing => (movie.tmdbId && existing.tmdbId === movie.tmdbId) || existing.id === movie.id || normalizeTitle(existing.title) === normalizeTitle(movie.title));
+  const id = knownTmdbId(movie);
+  return playlistRecords().some(existing => (id && id === knownTmdbId(existing)) || existing.id === movie.id || sameMovieTitle(existing, movie));
 }
 function createCatalogCard(movie) {
   const card = document.createElement('article'); card.className = 'movie-card';
@@ -1165,7 +1185,7 @@ function normalizeTmdbMovie(searchMovie, details) {
   return createMovie(title, 'tmdb', {
     id: `tmdb:${source.id ?? searchMovie.id}`, tmdbId: Number(source.id ?? searchMovie.id),
     year, runtimeMinutes: Number.isSafeInteger(source.runtime) && source.runtime > 0 ? source.runtime : null,
-    genres: Array.isArray(source.genres) ? source.genres.map(genre => genre.name).filter(Boolean) : [],
+    genres: Array.isArray(source.genres) ? source.genres.map(genre => genre.name).filter(Boolean) : (source.genre_ids ?? []).map(id => ({27:'Horror',14:'Fantasy',10751:'Family',16:'Animation',35:'Comedy',53:'Thriller',9648:'Mystery'}[id])).filter(Boolean),
     overview: { [language]: source.overview || searchMovie.overview || '' },
     translatedTitle: translatedTitle && normalizeTitle(translatedTitle) !== normalizeTitle(originalTitle) ? translatedTitle : null,
     posterUrl: imageUrlFromPath(source.poster_path || searchMovie.poster_path),
@@ -1209,31 +1229,74 @@ function addCatalogMovie(movie) {
   input.value = themeData.playlist.map(item => item.title).join('\n');
   updateList();
   catalogStatusOverride = language === 'pt-PT' ? `${displayTitle(movie)} foi adicionado à roleta.` : `${displayTitle(movie)} was added to the wheel.`;
-  renderCatalog();
+  renderCatalog(); renderRelatedRecommendations();
 }
-async function loadRelatedRecommendations() {
-  const section = document.querySelector('#related-section');
-  section.hidden = false; relatedResults.replaceChildren();
-  const tmdbIds = [...new Set(playlistRecords().map(movie => movie.tmdbId).filter(Number.isSafeInteger))].slice(0, 3);
-  if (!tmdbIds.length) { document.querySelector('#related-status').textContent = translate('relatedNoIds'); return; }
+function halloweenRecommendation(movie) {
+  if (movie.genres.includes('Horror')) return true;
+  if (!movie.genres.some(genre => ['Family', 'Fantasy'].includes(genre))) return false;
+  const words = [movie.title, movie.translatedTitle, ...Object.values(movie.overview ?? {})].join(' ');
+  return /halloween|haunt|ghost|witch|vampir|zombi|werewolf|monster|spooky|macabre|undead|supernatural|fantasm|bruxa|assombr|lobisom|monstr|sobrenatural|macabr|mortos.vivos/i.test(words);
+}
+function recommendationSeeds() {
+  const ids = [...playlistRecords().map(movie => movie.tmdbId).filter(Number.isSafeInteger), ...playlistRecords().map(knownTmdbId).filter(Boolean)];
+  if (activeTheme === 'halloween') ids.push(948, 10439, 4011, 14836, 1933, 138843, 2907, 23202, 10166, 77174, 62214, 927, ...Object.values(HALLOWEEN_TMDB_IDS));
+  return [...new Set(ids)];
+}
+function recommendationKey() { return activeTheme + ':' + language; }
+function renderRelatedRecommendations() {
+  const more = document.querySelector('#related-more');
+  if (relatedCache.key !== recommendationKey()) { relatedResults.replaceChildren(); more.hidden = true; return; }
+  const movies = relatedCache.movies.filter(movie => !movieIsAdded(movie) && matchesCollection(movie));
+  relatedResults.replaceChildren(...movies.slice(0, relatedCache.visible).map(createCatalogCard));
+  more.hidden = relatedCache.visible >= movies.length && relatedCache.seedIndex >= (relatedCache.seeds ?? recommendationSeeds()).length;
+  more.disabled = relatedCache.loading;
+  more.textContent = translate('relatedMore');
+  if (!relatedCache.loading) document.querySelector('#related-status').textContent = movies.length ? (activeTheme === 'halloween' ? translate('relatedCount', Math.min(relatedCache.visible, movies.length)) : '') : translate('relatedEmpty');
+}
+async function loadRelatedRecommendations(more = false) {
+  const key = recommendationKey();
+  if (relatedCache.key !== key) {
+    relatedController?.abort();
+    relatedCache = { key, movies: [], seedIndex: 0, visible: 16, loading: false };
+  }
+  if (relatedCache.loading) return;
+  const cache = relatedCache;
+  document.querySelector('#related-section').hidden = false;
   if (!tmdbConfig()) { document.querySelector('#related-status').textContent = translate('relatedOffline'); return; }
+  const seeds = cache.seeds ?? (cache.seeds = recommendationSeeds());
+  if (!seeds.length) { document.querySelector('#related-status').textContent = translate('relatedNoIds'); return; }
+  if (more) cache.visible += 16;
+  if (!more && cache.movies.length) { renderRelatedRecommendations(); return; }
+  cache.loading = true;
+  relatedController = new AbortController();
+  const { signal } = relatedController;
   document.querySelector('#related-status').textContent = translate('relatedLoading');
+  document.querySelector('#related-more').disabled = true;
   try {
-    const responses = await Promise.all(tmdbIds.map(id => tmdbRequest(`movie/${id}/recommendations`, { language: language === 'pt-PT' ? 'pt-PT' : 'en-US', page: 1 })));
-    const seen = new Set(); const recommendations = [];
-    for (const response of responses) for (const item of response.results ?? []) {
-      if (!Number.isSafeInteger(item.id) || seen.has(item.id)) continue;
-      seen.add(item.id);
-      const candidate = normalizeTmdbMovie(item, null);
-      if (candidate && !movieIsAdded(candidate)) recommendations.push(candidate);
+    let batches = 0;
+    while (cache.movies.filter(movie => !movieIsAdded(movie) && matchesCollection(movie)).length < cache.visible && cache.seedIndex < seeds.length && batches++ < 3) {
+      const batch = seeds.slice(cache.seedIndex, cache.seedIndex + 2);
+      const responses = await Promise.all(batch.map(id => tmdbRequest('movie/' + id + '/recommendations', { language: 'en-US', page: 1 }, signal)));
+      if (key !== recommendationKey() || cache !== relatedCache) return;
+      cache.seedIndex += batch.length;
+      for (const response of responses) for (const item of response.results ?? []) {
+        if (!Number.isSafeInteger(item.id) || item.adult === true) continue;
+        const movie = normalizeTmdbMovie(item, null);
+        if (!movie || movieIsAdded(movie) || (CURATED_CATALOG[activeTheme] ?? []).some(curated => knownTmdbId(curated) === movie.tmdbId || sameMovieTitle(curated, movie)) || (activeTheme === 'halloween' && !halloweenRecommendation(movie))) continue;
+        movie.collections = movie.genres.includes('Horror') ? ['horror'] : ['halloween-family'];
+        if (!cache.movies.some(existing => existing.tmdbId === movie.tmdbId || sameMovieTitle(existing, movie))) cache.movies.push(movie);
+      }
     }
-    for (const movie of recommendations.slice(0, 8)) relatedResults.append(createCatalogCard(movie));
-    document.querySelector('#related-status').textContent = recommendations.length ? '' : translate('relatedEmpty');
-    const logo = document.querySelector('#tmdb-logo'); logo.src = tmdbConfig().logo.href; logo.hidden = false;
-  } catch {
+    cache.loading = false; renderRelatedRecommendations();
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    cache.loading = false; renderRelatedRecommendations();
     document.querySelector('#related-status').textContent = translate('relatedError');
+    document.querySelector('#related-more').hidden = false;
   }
 }
+document.querySelector('#related-more').addEventListener('click', () => loadRelatedRecommendations(true));
+
 function setWatched(movieId, isWatched) {
   if (!movieId) return;
   viewed = isWatched ? [...new Set([...viewed, movieId])] : viewed.filter(id => id !== movieId);
@@ -1360,6 +1423,7 @@ function updateList() {
   syncWatchButton();
   persistState();
   renderEligibility();
+  renderCatalog(); renderRelatedRecommendations();
 }
 function setEditorOpen(open) {
   if (open) setWorkspace('collection');
@@ -1613,7 +1677,7 @@ drawPaceSelect.addEventListener('change', () => persistState());
 resetButton.addEventListener('click', () => { if (!spinning) { input.value = activeTheme === 'christmas' ? CHRISTMAS_MOVIES.join('\n') : DEFAULT_MOVIES.join('\n'); updateList(); } });
 soundButton.addEventListener('click', () => setSound(!soundEnabled));
 languageSelect.value = language;
-languageSelect.addEventListener('change', () => { language = languageSelect.value === 'en' ? 'en' : 'pt-PT'; state.language = language; persistState(); renderLanguage(); });
+languageSelect.addEventListener('change', () => { language = languageSelect.value === 'en' ? 'en' : 'pt-PT'; state.language = language; persistState(); renderLanguage(); if (document.querySelector('#discover-panel').open) loadRelatedRecommendations(); });
 themeSelect.value = activeTheme;
 themeSelect.addEventListener('change', () => {
   if (spinning) return;

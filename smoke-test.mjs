@@ -58,7 +58,7 @@ assert.equal(node('#edit-toggle').getAttribute('aria-expanded'), 'false');
 assert.equal(node('#sound').getAttribute('aria-pressed'), 'true');
 assert.equal(node('#sound').getAttribute('aria-label'), 'Desativar som');
 assert.equal(node('#theme').value, 'halloween');
-assert.equal(node('#catalog-results').children.length, 27, 'offline Halloween catalogue renders curated cards');
+assert.equal(node('#catalog-results').children.length, 8, 'Halloween suggestions omit the 19 movies already on the wheel');
 assert.equal(evaluate('CURATED_CATALOG.halloween.every(movie => safePosterUrl(movie.posterUrl))'), true, 'every curated Halloween film has a verified poster');
 assert.equal(evaluate('playlistRecords().every(movie => safePosterUrl(movie.posterUrl))'), true, 'all 19 starter titles receive posters without changing their identity');
 assert.match(node('#catalog-status').textContent, /TMDB não está ativa/);
@@ -182,7 +182,7 @@ assert.equal(node('body').dataset.theme, 'christmas');
 assert.equal(node('#brand-name').innerHTML, 'CHRISTMAS <b>ROULETTE</b>');
 assert.equal(node('#wheel-theme-label').textContent, 'NATAL', 'Christmas wheel label is localized');
 assert.equal(node('#movies').value.includes('Klaus (2019)'), true);
-assert.equal(node('#catalog-results').children.length, 22, 'offline Christmas catalogue renders curated cards');
+assert.equal(node('#catalog-results').children.length, 9, 'Christmas suggestions omit movies already on the wheel');
 node('#catalog-search').value = 'Home Alone'; node('#catalog-search').dispatch('input');
 assert.equal(node('#catalog-results').children.length, 2, 'offline title search distinguishes the two Home Alone films');
 node('#catalog-search').value = 'Home Alone 1990'; node('#catalog-search').dispatch('input');
@@ -515,7 +515,8 @@ const onlineCatalog = await createApp({}, { window: tmdbConfig, fetch: async (ur
   const parsed = new URL(url); tmdbCalls.push({ url: parsed.href, requestOptions });
   if (parsed.pathname.endsWith('/search/movie')) return { ok: true, json: async () => ({ results: [{ id: 123, title: 'Localized Film', original_title: 'Original Film', release_date: '2020-01-02', poster_path: '/poster.jpg', vote_average: 7.2, overview: 'Search overview' }] }) };
   if (parsed.pathname.endsWith('/movie/123')) return { ok: true, json: async () => ({ id: 123, title: 'Localized Film', original_title: 'Original Film', release_date: '2020-01-02', runtime: 95, genres: [{ name: 'Comedy' }], poster_path: '/poster.jpg', vote_average: 7.6, overview: 'Detailed overview', external_ids: { imdb_id: 'tt1234567' } }) };
-  if (parsed.pathname.endsWith('/movie/123/recommendations')) return { ok: true, json: async () => ({ results: [{ id: 123, title: 'Original Film', original_title: 'Original Film', release_date: '2020-01-02' }, { id: 456, title: 'Related Film', original_title: 'Related Film', release_date: '1980-05-01', vote_average: 6.5, overview: 'A related story.' }] }) };
+  if (parsed.pathname.endsWith('/movie/123/recommendations')) return { ok: true, json: async () => ({ results: [{ id: 123, title: 'Original Film', original_title: 'Original Film', release_date: '2020-01-02' }, { id: 456, title: 'Related Film', original_title: 'Related Film', release_date: '1980-05-01', vote_average: 6.5, overview: 'A haunted story.', genre_ids: [27] }] }) };
+  if (parsed.pathname.endsWith('/recommendations')) return { ok: true, json: async () => ({ results: [] }) };
   throw new Error(`Unexpected TMDB request: ${parsed.pathname}`);
 } });
 onlineCatalog.node('#catalog-search').value = 'Original Film 2020';
@@ -535,6 +536,28 @@ assert.equal(vm.runInContext('playlistRecords().at(-1).tmdbId', onlineCatalog.sa
 await vm.runInContext('loadRelatedRecommendations()', onlineCatalog.sandbox);
 assert.equal(onlineCatalog.node('#related-results').children.length, 1, 'related results omit a film already on the wheel');
 assert.equal(vm.runInContext('relatedResults.children[0].children[1].children[0].textContent', onlineCatalog.sandbox), 'Related Film');
+assert.equal(vm.runInContext("movieIsAdded({title:'HÓCUS   PÓCUS', tmdbId:10439})", onlineCatalog.sandbox), true, 'title without a year and accents matches the existing film');
+assert.equal(vm.runInContext("movieIsAdded({title:'Dont Look Under the Bed (1999)'})", onlineCatalog.sandbox), true, 'apostrophes do not produce duplicate recommendations');
+assert.equal(vm.runInContext("movieIsAdded({title:'Abracadabra (1993)', tmdbId:10439})", onlineCatalog.sandbox), true, 'verified TMDB identity also matches translated titles');
+assert.equal(evaluate("sameMovieTitle({title:'Halloween (1978)'},{title:'Halloween (2018)'})"), false, 'different remakes remain distinct');
+assert.equal(evaluate("halloweenRecommendation({title:'Family camping', genres:['Family'], overview:{en:'A summer sports holiday'}})"), false);
+assert.equal(evaluate("halloweenRecommendation({title:'Spooky house', genres:['Family'], overview:{en:'A haunted house with ghosts'}})"), true);
+const extendedCatalog = await createApp({}, { window: tmdbConfig, fetch: async url => {
+  const seed = Number(new URL(url).pathname.match(/movie\/(\d+)/)?.[1]);
+  return { ok: true, json: async () => ({ results: [
+    { id:10439, original_title:'Hocus Pocus', title:'Hocus Pocus', release_date:'1993-07-16', genre_ids:[14,10751], overview:'Witches at Halloween' },
+    { id:999999, title:'Sports family', genre_ids:[10751], overview:'A summer holiday' },
+    { id:999998, title:'Unrelated fantasy', genre_ids:[14], overview:'An adventure in space' },
+    ...Array.from({length:20}, (_,i)=>({id:seed*100+i, title:`Horror ${seed}-${i}`, release_date:'2020-01-01', genre_ids:[27], overview:'A scary story'}))
+  ]}) };
+} });
+await vm.runInContext('loadRelatedRecommendations()', extendedCatalog.sandbox);
+assert.equal(extendedCatalog.node('#related-results').children.length,16);
+assert.equal(vm.runInContext('relatedCache.movies.some(movie=>movie.tmdbId===10439 || movie.tmdbId===999999 || movie.tmdbId===999998)',extendedCatalog.sandbox),false,'existing titles and unrelated family/fantasy films are excluded');
+await extendedCatalog.node('#related-more').dispatch('click');
+assert.equal(extendedCatalog.node('#related-results').children.length,32,'more recommendations exposes another batch without the old eight-film limit');
+vm.runInContext('addCatalogMovie(relatedCache.movies[0])',extendedCatalog.sandbox);
+assert.equal(vm.runInContext('relatedResults.children.some(card=>card.children[1].children[0].textContent===displayTitle(relatedCache.movies[0]))',extendedCatalog.sandbox),false,'adding a recommendation immediately removes its card');
 
 const noResultCatalog = await createApp({}, { window: tmdbConfig, fetch: async () => ({ ok: true, json: async () => ({ results: [] }) }) });
 noResultCatalog.node('#catalog-search').value = 'No such film';

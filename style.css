@@ -181,6 +181,10 @@ body[data-theme="halloween"] .wheel-caption::after { right: 9px; }
 .shuffle-display #shuffle-ticker.is-settled { color: #ffd59b; font-size: clamp(19px, 2.4vw, 28px); text-shadow: 0 0 18px #f4841844; }
 .shuffle-display #shuffle-ticker.is-settled span { height: auto; min-height: 96px; padding: 16px 20px; }
 .shuffle-current { color: #bb9363; font: 700 10px/1.5 'DM Sans', sans-serif; letter-spacing: 1.5px; }
+#related-more { display: block; margin: 24px auto 0; min-height: 46px; padding: 12px 24px; border: 1px solid #aa753f; border-radius: 7px; color: #ffd4a0; background: #8b481825; }
+#related-more[hidden] { display: none; }
+#related-more:disabled { opacity: .55; cursor: wait; }
+#related-more:focus-visible { outline: 3px solid #ffba62; outline-offset: 4px; }
 .poster-stage { min-height: 440px; padding: 16px 14px 20px; background: radial-gradient(ellipse at 50% 65%, #a24f2344, transparent 65%), #130e0bf2; }
 .poster-stage .shuffle-marquee { margin: 0; }
 .poster-strip { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 354px; padding: 20px 0 12px; }
