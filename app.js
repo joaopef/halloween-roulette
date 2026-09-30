@@ -482,7 +482,19 @@ function syncTheme() {
   document.querySelector('.wheel-center svg').style.color = activeTheme === 'christmas' ? '#f4db92' : '#ffa537';
   document.querySelector('.wheel-center svg').innerHTML = activeTheme === 'christmas'
     ? '<path d="M32 5 37 24 53 14 44 31 62 35 44 40 54 57 37 47 32 66 27 47 10 57 20 40 2 35 20 31 11 14 27 24Z" fill="currentColor"/><circle cx="32" cy="35" r="6" fill="#173126"/>'
-    : '<path d="M32 13c-8-5-24 1-25 18-2 18 13 26 25 22 12 4 27-4 25-22-1-17-17-23-25-18Z" fill="currentColor"/><path d="m28 13 3-8 8-2-4 11" fill="none" stroke="currentColor" stroke-width="4"/><path d="m15 31 12-6-3 12Zm34 0-12-6 3 12ZM31 32l-4 8h10ZM16 42l8 3 4-3 4 5 5-5 4 3 7-3-5 8H21Z" fill="#160d07"/>';
+    : `<defs>
+      <radialGradient id="pumpkin-rind" cx=".35" cy=".25" r=".8"><stop stop-color="#ffbd57"/><stop offset=".5" stop-color="#ed7a1b"/><stop offset="1" stop-color="#9d370b"/></radialGradient>
+      <linearGradient id="pumpkin-light" x2="0" y2="1"><stop stop-color="#fff7ba"/><stop offset="1" stop-color="#ffbd35"/></linearGradient>
+    </defs>
+    <path d="M29 16q-2-8 5-13l6 2q-8 5-6 12" fill="#657139" stroke="#303319" stroke-width="2"/>
+    <path d="M32 16C19 8 5 21 5 36c0 18 15 25 27 22 14 3 28-7 27-23C58 20 46 9 32 16Z" fill="url(#pumpkin-rind)" stroke="#6f2b0d" stroke-width="2"/>
+    <g fill="none" stroke="#a2440e" stroke-width="1.5" opacity=".55"><path d="M23 17Q11 38 22 55M42 17q13 23 0 39M31 18q-5 20 0 38"/></g>
+    <path d="M12 27l15 6-4 8-11-3ZM51 27l-15 6 4 8 11-3ZM32 35l-5 8h10Z" fill="#57220c"/>
+    <path d="M14 29l11 5-3 5-8-3ZM49 29l-11 5 3 5 8-3ZM32 37l-3 5h6Z" fill="url(#pumpkin-light)"/>
+    <path d="M12 43q20 21 40-1l-3 11q-17 12-34 0Z" fill="#57220c"/>
+    <path d="M15 46l7 3 3-4 5 7 5-7 4 5 10-5-3 7-7 3-3-3-5 5-5-5-3 2-6-3Z" fill="url(#pumpkin-light)"/>
+    <path d="M13 24q4-7 10-7M44 20q6 3 8 9" fill="none" stroke="#ffe096" stroke-width="2" opacity=".5"/>`;
+
   document.querySelector('.intro .eyebrow').firstElementChild.style.background = 'var(--accent)';
 }
 
