@@ -59,6 +59,8 @@ assert.equal(node('#sound').getAttribute('aria-pressed'), 'true');
 assert.equal(node('#sound').getAttribute('aria-label'), 'Desativar som');
 assert.equal(node('#theme').value, 'halloween');
 assert.equal(node('#catalog-results').children.length, 27, 'offline Halloween catalogue renders curated cards');
+assert.equal(evaluate('CURATED_CATALOG.halloween.every(movie => safePosterUrl(movie.posterUrl))'), true, 'every curated Halloween film has a verified poster');
+assert.equal(evaluate('playlistRecords().every(movie => safePosterUrl(movie.posterUrl))'), true, 'all 19 starter titles receive posters without changing their identity');
 assert.match(node('#catalog-status').textContent, /TMDB não está ativa/);
 assert.equal(node('#tmdb-attribution').hidden, true, 'inactive TMDB does not claim an active integration');
 assert.equal(node('#history-stats').textContent, '17 filmes diferentes · 24 sorteios');

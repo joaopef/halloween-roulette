@@ -220,10 +220,12 @@ function makeThemeState(playlistInput, historyInput, flags = {}) {
 function addExactEditorialMetadata(theme, themeData) {
   const curatedMovies = CURATED_CATALOG[theme] ?? [];
   themeData.playlist = themeData.playlist.map(movie => {
-    const editorial = curatedMovies.find(candidate => normalizeTitle(candidate.title) === normalizeTitle(movie.title));
+    const editorialKey = title => normalizeTitle(title).replace(/['’]/g, '');
+    const editorial = curatedMovies.find(candidate => editorialKey(candidate.title) === editorialKey(movie.title));
     if (!editorial) return movie;
     return createMovie(movie.title, movie.source, {
       ...movie,
+      posterUrl: movie.posterUrl ?? editorial.posterUrl,
       runtimeMinutes: movie.runtimeMinutes ?? editorial.runtimeMinutes,
       genres: movie.genres.length ? movie.genres : editorial.genres,
       moods: movie.moods.length ? movie.moods : editorial.moods,
@@ -1320,6 +1322,7 @@ function drawWheel(movies = eligibleRecords()) {
 }
 function updateList() {
   themeData.playlist = reconcilePlaylist(input.value);
+  addExactEditorialMetadata(activeTheme, themeData);
   input.value = themeData.playlist.map(movie => movie.title).join('\n');
   document.querySelector('#generate-share').disabled = themeData.playlist.length === 0;
   lastResultMovieId = null;

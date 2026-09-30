@@ -1,3 +1,35 @@
+// Verified TMDB poster paths for the curated Halloween titles (2026-09-30).
+// Mickey’s House of Villains is dated 2002 by TMDB; the existing playlist title is preserved.
+const HALLOWEEN_POSTERS = {
+  "Beetlejuice (1988)": "/nnl6OWkyPpuMm595hmAxNW3rZFn.jpg",
+  "Casper (1995)": "/2ah8fNJFZVU3vcXhU5xfAYi2eym.jpg",
+  "Coraline (2009)": "/4jeFXQYytChdZYE9JYO7Un87IlW.jpg",
+  "Don't Look Under The Bed (1999)": "/hsa9gmUnaWPnsD7EBcsxqo1Rlze.jpg",
+  "Halloween (1978)": "/wijlZ3HaYMvlDTPqJoTCWKFkCPU.jpg",
+  "Halloweentown (1998)": "/y9RJCxJMbWqhXjkBgC0VXETmHj6.jpg",
+  "Halloweentown II Kalabars Revenge (2001)": "/uDnp52aGXxnfU4vqnnc6YpfzjHb.jpg",
+  "Haunted Mansion (2023)": "/8Im6DknDVxRiGXc5t8rVOJyzuNx.jpg",
+  "Hocus Pocus (1993)": "/by4D4Q9NlUjFSEUA1yrxq6ksXmk.jpg",
+  "Hocus Pocus 2 (2022)": "/7ze7YNmUaX81ufctGqt0AgHxRtL.jpg",
+  "It's The Great Pumpkin, Charlie Brown (1966)": "/59wp9OWexYsxlSPHYmVLsl5xlFt.jpg",
+  "Lonesome Ghosts (1937)": "/ydAWe33OKMxkwd4piuQdKDVr3qO.jpg",
+  "Mickey's House Of Villains (2001)": "/82qQAp7rcAwVnW12xbkVImp0unP.jpg",
+  "Muppets Haunted Mansion (2021)": "/AeVMV8cMvNhn6aKozAH3pysvftm.jpg",
+  "Something Wicked This Way Comes (1983)": "/94dMO6kAawyFUk0sCDGIjAnchED.jpg",
+  "The Black Cauldron (1985)": "/h64i9e6oJs2jrDZ4QzspXMqZhPF.jpg",
+  "The Nightmare Before Christmas (1993)": "/oQffRNjK8e19rF7xVYEN8ew0j7b.jpg",
+  "The Orphanage (2007)": "/vIpi1KtHLXUOfSVC2m6MqpjSPgL.jpg",
+  "Trick 'r Treat (2007)": "/w0nmol4g7n6MFfhfphV7GzHHYjB.jpg",
+  "The Addams Family (1991)": "/qFf8anju5f2epI0my8RdwwIXFIP.jpg",
+  "The Addams Family Values (1993)": "/sdxT2VjVSx9DRicwnuECUdBHeE7.jpg",
+  "Frankenweenie (2012)": "/yGjVbLVdZRBlZTTQVBsj2KUjL1s.jpg",
+  "ParaNorman (2012)": "/9DZPtuYTKYxt6vzHvZ5FLThG4fl.jpg",
+  "The Witches (1990)": "/mPYBjVkeHakkPGY7WaKyyNU4RWm.jpg",
+  "The Others (2001)": "/p8g1vlTvpM6nr2hMMiZ1fUlKF0D.jpg",
+  "Gremlins (1984)": "/6m0F7fsXjQvUbCZrPWcJNrjvIui.jpg",
+  "The Conjuring (2013)": "/wVYREutTvI2tmxr6ujrHT704wGF.jpg"
+};
+
 // Editorial offline catalogue. These synopses and mood/collection labels are
 // local curation, not TMDB data or AI-personalized recommendations.
 function curatedMovie(theme, title, runtimeMinutes, genres, moods, collections, ptOverview, enOverview) {
@@ -7,7 +39,7 @@ function curatedMovie(theme, title, runtimeMinutes, genres, moods, collections, 
     id: `curated:${theme}:${slug}-${year ?? 'unknown'}`,
     title, year, runtimeMinutes, genres, moods, collections,
     overview: { 'pt-PT': ptOverview, en: enOverview },
-    posterUrl: null, tmdbRating: null, tmdbId: null, imdbId: null, source: 'curated'
+    posterUrl: theme === 'halloween' && HALLOWEEN_POSTERS[title] ? `https://image.tmdb.org/t/p/w342${HALLOWEEN_POSTERS[title]}` : null, tmdbRating: null, tmdbId: null, imdbId: null, source: 'curated'
   };
 }
 
