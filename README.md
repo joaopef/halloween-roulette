@@ -42,7 +42,7 @@ A aplicação usa apenas os efeitos de rotação e de fim (`slot.wav` e `ding.mp
 
 O catálogo curado local mantém a roleta utilizável sem serviços externos: 27 sugestões de Halloween e 22 de Natal, com pesquisa por título/ano e coleções temáticas. As sinopses, géneros, durações e disposições desta lista são editoriais; não são dados TMDB. O catálogo local não tem cartazes, classificações TMDB nem IDs IMDb verificados, pelo que mostra uma alternativa ao cartaz e não inventa esses campos.
 
-A aplicação tem um adaptador TMDB opcional. O projeto não tem credencial nem serviço configurado, por isso a pesquisa online e recomendações TMDB **não estão ativas**. O adaptador usa os endpoints TMDB de pesquisa, detalhes e recomendações; os detalhes só mostram um link IMDb quando o endpoint de IDs externos devolve um ID válido. Os cartazes vêm do CDN de imagens TMDB e as notas são sempre identificadas como TMDB.
+A pesquisa online está ligada ao Worker `https://halloween-cinema-catalog.joaoferreira240.workers.dev/3/`. O token de leitura está guardado como segredo na Cloudflare; a página contém apenas o endereço público do serviço e o logótipo oficial TMDB. O adaptador usa os endpoints TMDB de pesquisa, detalhes e recomendações; os detalhes só mostram um link IMDb quando o endpoint de IDs externos devolve um ID válido. Os cartazes vêm do CDN de imagens TMDB e as notas são sempre identificadas como TMDB. Os títulos existentes e as sugestões locais não recebem uma associação TMDB automática.
 
 Para ativar a integração:
 
@@ -51,7 +51,7 @@ Para ativar a integração:
 3. Obtém um dos logótipos aprovados na página oficial de atribuição TMDB e aloja-o por HTTPS.
 4. Define, antes de `app.js`, `window.CINEMA_CATALOG_PROXY_URL` para a raiz `/3/` do worker e `window.CINEMA_TMDB_LOGO_URL` para o logótipo oficial alojado. Sem estas duas configurações a aplicação permanece no modo local.
 
-A atribuição e a nota de não aprovação TMDB aparecem automaticamente quando o catálogo online está configurado. A conta/projeto TMDB e o worker não foram criados nem publicados nesta entrega porque não existe token TMDB ou conta de serviço fornecida. Confirma os termos aplicáveis à utilização do projeto antes de ativar o serviço.
+A atribuição e a nota de não aprovação TMDB aparecem automaticamente quando o catálogo online está configurado. A pesquisa é iniciada pelo botão Pesquisar; escrever no campo continua a filtrar as sugestões locais. A pasta `.wrangler` e os ficheiros locais de segredos estão excluídos do Git.
 
 Referências consultadas: [Getting Started](https://developer.themoviedb.org/docs/getting-started), [FAQ](https://developer.themoviedb.org/docs/faq), [pesquisa de filmes](https://developer.themoviedb.org/reference/search-movie), [detalhes de filme](https://developer.themoviedb.org/reference/movie-details), [recomendações](https://developer.themoviedb.org/reference/movie-recommendations), [regras de imagem](https://developer.themoviedb.org/docs/image-basics), [atribuição e logótipos](https://www.themoviedb.org/about/logos-attribution).
 

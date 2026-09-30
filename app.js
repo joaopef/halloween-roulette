@@ -1085,7 +1085,7 @@ function renderCatalog() {
   const results = remoteSearchResults ?? localCatalogMatches();
   catalogResults.replaceChildren();
   for (const movie of results) catalogResults.append(createCatalogCard(movie));
-  const status = catalogStatusOverride || translate('localCatalogStatus');
+  const status = catalogStatusOverride || (tmdbConfig() ? (language === 'pt-PT' ? 'Sugestões locais. Pesquisa um título para encontrar filmes e cartazes no TMDB.' : 'Local suggestions. Search a title to find movies and posters on TMDB.') : translate('localCatalogStatus'));
   document.querySelector('#catalog-status').textContent = status;
   if (!results.length) {
     const empty = document.createElement('p'); empty.className = 'catalog-empty';
