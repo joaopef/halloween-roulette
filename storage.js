@@ -116,7 +116,8 @@ function initialState() {
       activeTheme: existing.activeTheme === 'christmas' ? 'christmas' : 'halloween',
       language: existing.language === 'en' ? 'en' : 'pt-PT',
       soundEnabled: existing.soundEnabled !== false,
-      musicEnabled: existing.musicEnabled === true,
+      musicEnabled: existing.musicPreferenceSet ? existing.musicEnabled !== false : true,
+      musicPreferenceSet: existing.musicPreferenceSet === true,
       themes: {
         halloween: makeThemeState(existing.themes.halloween.playlist, existing.themes.halloween.history, existing.themes.halloween),
         christmas: makeThemeState(existing.themes.christmas.playlist, existing.themes.christmas.history, existing.themes.christmas)
@@ -183,6 +184,7 @@ function persistState() {
   state.language = language;
   state.soundEnabled = soundEnabled;
   state.musicEnabled = musicEnabled;
+  state.musicPreferenceSet = state.musicPreferenceSet === true;
   themeData.drawMode = drawModeSelect.value;
   themeData.drawPace = drawPaceSelect.value;
   themeData.history = history;

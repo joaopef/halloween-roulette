@@ -253,9 +253,19 @@ button.movie-poster { display: block; width: 100%; padding: 0; border: 0; color:
 #editor-error, #title-edit-error { color: #ffd0b0; }
 #title-edit-input { width: 100%; padding: 12px; background: #14100c; color: #ffe1a7; border: 1px solid #99633a; }
 
-.music-controls { margin: 12px auto 0; width: min(100%, 420px); }
-.music-toggle { min-height: 44px; padding: 10px 14px; color: var(--accent); border: 1px solid color-mix(in srgb,var(--accent) 35%,transparent); border-radius: 7px; background: #100e0b99; }
+.music-toggle { display: inline-flex; align-items: center; gap: 6px; height: 44px; flex-shrink: 0; padding: 0 10px; font-size: 11px; color: var(--accent); border: 1px solid color-mix(in srgb,var(--accent) 35%,transparent); border-radius: 7px; background: #100e0b99; }
 .music-toggle[aria-pressed="true"] { background: color-mix(in srgb,var(--accent) 13%,#100e0b); }
 .music-toggle[hidden] { display: none; }
 #music-status { font-size: 11px; color: #dfc9a4; }
 #music-status:empty { display: none; }
+
+header { flex-wrap: wrap; }
+.global-controls { margin-left: auto; }
+.music-state { font-size: 8px; font-weight: 700; opacity: .8; }
+header #music-status { flex-basis: 100%; margin: 6px 0 0; text-align: right; }
+@media (max-width: 650px) {
+  header .brand { flex: 1 0 100%; text-align: center; margin-bottom: 8px; }
+  header .global-controls { width: 100%; justify-content: center; margin-left: 0; gap: 8px; }
+  header .music-toggle { font-size: 11px; }
+  header #music-status { text-align: center; }
+}

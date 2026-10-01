@@ -18,14 +18,21 @@ try {
     const page = await context.newPage();
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await page.goto('http://127.0.0.1:4174');
-    assert.equal(await page.evaluate(() => backgroundMusic.paused), true);
-    await page.locator('#music').click();
+    assert.equal(await page.evaluate(() => musicEnabled), true);
+    assert.equal(await page.locator('#music').evaluate(button => !!button.closest('header .global-controls')), true);
+    await page.locator('.intro h1').click();
     await page.waitForFunction(() => !backgroundMusic.paused && backgroundMusic.currentTime > 0);
     assert.equal(await page.evaluate(() => backgroundMusic.loop), true);
     await page.locator('#sound').click();
     assert.equal(await page.evaluate(() => backgroundMusic.paused), false);
     await page.locator('#music').click();
     assert.equal(await page.evaluate(() => backgroundMusic.paused), true);
+    await page.mouse.wheel(0, 50);
+    assert.equal(await page.evaluate(() => backgroundMusic.paused), true, 'scroll does not undo an explicit OFF choice');
+    await page.reload();
+    assert.equal(await page.locator('#music').getAttribute('aria-pressed'), 'false');
+    assert.equal(await page.evaluate(() => backgroundMusic.paused), true, 'explicit OFF survives reload');
+    await page.evaluate(() => scrollTo(0, 0));
     await page.screenshot({ path: `test-artifacts/start-${viewport.width}.png` });
     await page.locator('#tab-collection').click();
     await page.locator('#edit-toggle').click();
@@ -133,5 +140,13 @@ try {
   assert.equal(await filePage.locator('#count').textContent(), '19', 'classic scripts also run directly from disk');
   assert.deepEqual(fileErrors, []);
   await fileContext.close();
+  const autoplayBrowser = await chromium.launch({ headless: true, args: ['--autoplay-policy=no-user-gesture-required'], ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) });
+  try {
+    const automaticPage = await autoplayBrowser.newPage();
+    await automaticPage.route('https://**/*', route => route.abort());
+    await automaticPage.goto('http://127.0.0.1:4174');
+    await automaticPage.waitForFunction(() => !backgroundMusic.paused && backgroundMusic.currentTime > 0);
+    assert.equal(await automaticPage.locator('#music').getAttribute('aria-pressed'), 'true', 'music plays on entry when browser policy permits');
+  } finally { await autoplayBrowser.close(); }
   console.log('Passed Chromium: desktop/mobile editing, validation, IDs, undo, keyboard details, modal focus, semantic posters, layout, offline catalogue and storage failure.');
 } finally { await browser?.close(); server.kill(); }

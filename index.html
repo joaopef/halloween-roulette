@@ -7,19 +7,19 @@
   <meta name="description" content="Deixa a sorte escolher o filme da noite. Uma roleta de cinema com coleções para Halloween e Natal.">
   <title>Halloween Roulette — O teu próximo filme</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=20261001-music-doors">
+  <link rel="stylesheet" href="style.css?v=20261001-autoplay-header">
   <script src="movies.js" defer></script>
   <script src="catalog.js?v=20260930-details" defer></script>
   <script>
     window.CINEMA_CATALOG_PROXY_URL = 'https://halloween-cinema-catalog.joaoferreira240.workers.dev/3/';
     window.CINEMA_TMDB_LOGO_URL = 'https://www.themoviedb.org/assets/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg';
   </script>
-  <script src="translations.js?v=20261001-music-doors" defer></script>
-  <script src="storage.js?v=20261001-music-doors" defer></script>
-  <script src="tmdb.js?v=20261001-music-doors" defer></script>
-  <script src="drawing.js?v=20261001-music-doors" defer></script>
-  <script src="collection.js?v=20261001-music-doors" defer></script>
-  <script src="app.js?v=20261001-music-doors" defer></script>
+  <script src="translations.js?v=20261001-autoplay-header" defer></script>
+  <script src="storage.js?v=20261001-autoplay-header" defer></script>
+  <script src="tmdb.js?v=20261001-autoplay-header" defer></script>
+  <script src="drawing.js?v=20261001-autoplay-header" defer></script>
+  <script src="collection.js?v=20261001-autoplay-header" defer></script>
+  <script src="app.js?v=20261001-autoplay-header" defer></script>
 </head>
 <body data-theme="halloween">
   <aside id="storage-warning" class="storage-warning" role="alert" hidden><p id="storage-warning-text"></p><button class="text-button" id="storage-backup" type="button"></button></aside>
@@ -30,6 +30,7 @@
   <header>
     <a class="brand" href="./"><span class="brand-icon" aria-hidden="true">✦</span><span id="brand-name">HALLOWEEN <b>ROULETTE</b></span></a>
     <div class="global-controls">
+      <button class="music-toggle" id="music" type="button" aria-pressed="true" aria-label="Desligar música de fundo" title="Desligar música de fundo"><span aria-hidden="true">♫</span><span class="music-label">Música</span><span class="music-state" aria-hidden="true">ON</span></button>
       <label class="sr-only" for="language">Idioma da interface</label>
       <select id="language" class="compact-select" aria-label="Idioma da interface">
         <option value="pt-PT">PT</option><option value="en">EN</option>
@@ -39,6 +40,7 @@
         <option value="halloween">🎃 Halloween</option><option value="christmas">🎄 Christmas</option>
       </select>
     </div>
+    <p id="music-status" role="status"></p>
   </header>
   <main>
     <section class="intro"><span class="eyebrow"><i></i><span data-i18n="eyebrow">UMA SESSÃO ESCOLHIDA PELO DESTINO</span></span><h1><span data-i18n="headline1">A noite é tua.</span><br><em data-i18n="headline2">O filme é da sorte.</em></h1><p data-i18n="intro">Entre bruxas, fantasmas e pesadelos. Roda e descobre o que te espera.</p></section>
@@ -71,7 +73,6 @@
         <div class="wheel-stage"><span class="wheel-caption" data-i18n="wheelCaption">A RODA DOS ARREPIOS</span><div class="wheel-frame"><span class="wheel-lights" aria-hidden="true">✦　✦　✦　✦　✦　✦　✦　✦</span><div class="pointer" aria-hidden="true"></div><canvas id="wheel" width="1000" height="1000" role="img" aria-label="Roleta com os filmes da lista"></canvas><img class="haunted-frame" src="haunted-wheel.svg" alt="" aria-hidden="true" draggable="false"><div class="wheel-center" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 13c-8-5-24 1-25 18-2 18 13 26 25 22 12 4 27-4 25-22-1-17-17-23-25-18Z" fill="currentColor"/><path d="m28 13 3-8 8-2-4 11" fill="none" stroke="currentColor" stroke-width="4"/><path d="m15 31 12-6-3 12Zm34 0-12-6 3 12ZM31 32l-4 8h10ZM16 42l8 3 4-3 4 5 5-5 4 3 7-3-5 8H21Z" fill="#160d07"/></svg><small id="wheel-theme-label">HALLOWEEN</small></div></div><span class="wheel-orbit" data-i18n="wheelOrbit">✦ &nbsp; QUE A SORTE TE ASSOMBRE &nbsp; ✦</span></div>
         <div class="game-controls"><button class="spin" id="spin" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg><span data-i18n="spin">Rodar a roleta</span></button><button class="sound-toggle" id="sound" type="button" aria-pressed="true" aria-label="Desativar som" title="Desativar som"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="speaker" d="M3 9v6h4l5 4V5L7 9H3Z"/><path class="sound-waves" d="M16 9a5 5 0 0 1 0 6m3-9a9 9 0 0 1 0 12"/><path class="sound-off" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
         <div class="result" id="result" aria-live="polite" aria-atomic="true"><span class="result-icon" aria-hidden="true">☾</span><div class="result-content"><span class="eyebrow" id="result-label">O DESTINO ESTÁ À ESPERA</span><h3><button class="movie-title-action" id="result-title" type="button" disabled>O próximo filme é uma surpresa.</button></h3><p id="result-description">Roda a roleta para descobrir.</p><button class="text-button watch-toggle" id="watch-toggle" type="button" hidden>Marcar como visto</button></div></div>
-        <div class="music-controls"><button class="text-button music-toggle" id="music" type="button" aria-pressed="false">♫ Ativar música de fundo</button><p id="music-status" role="status"></p></div>
         <p class="hint" id="hint">19 filmes. Uma escolha. Tens coragem?</p>
         <p id="poster-suggestion" class="hint" hidden></p>
         <details class="eligible-browser"><summary id="eligible-list-label"></summary><ul id="eligible-list"></ul></details>

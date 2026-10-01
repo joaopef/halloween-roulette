@@ -1,5 +1,6 @@
 const COPY = {
   'pt-PT': {
+    musicLabel: 'Música',
     musicOn: '♫ Ativar música de fundo', musicOff: '♫ Desligar música de fundo', musicUnavailable: 'Não foi possível reproduzir a música. Tenta ativá-la novamente.',
     workspaceEyebrow: 'À TUA MEDIDA', workspaceTitle: 'Prepara a noite', tabSession: 'Sessão', tabCollection: 'Coleção', tabHistory: 'Histórico', filmsNoun: 'filmes', workspaceTabs: 'Ferramentas da sessão', drawError: 'Não foi possível concluir o sorteio. Tenta novamente.', findMovies: 'Encontrar filmes',
     pageTitleHalloween: 'Halloween Roulette — O teu próximo filme', pageTitleChristmas: 'Christmas Roulette — O teu próximo filme',
@@ -38,6 +39,7 @@ const COPY = {
     footerLeft: 'FEITO PARA NOITES QUE NÃO TE DEIXAM DORMIR.', footerRight: 'Boa sessão. Vais precisar de pipocas.'
   },
   en: {
+    musicLabel: 'Music',
     musicOn: '♫ Play background music', musicOff: '♫ Turn off background music', musicUnavailable: 'Could not play the music. Try enabling it again.',
     workspaceEyebrow: 'MAKE IT YOURS', workspaceTitle: 'Set the scene', tabSession: 'Session', tabCollection: 'Collection', tabHistory: 'History', filmsNoun: 'movies', workspaceTabs: 'Session tools', drawError: 'The draw could not finish. Please try again.', findMovies: 'Find movies',
     pageTitleHalloween: 'Halloween Roulette — Your next movie', pageTitleChristmas: 'Christmas Roulette — Your next movie',

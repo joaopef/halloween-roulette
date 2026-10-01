@@ -72,7 +72,7 @@ const state = initialState();
 let activeTheme = state.activeTheme;
 let language = state.language;
 let soundEnabled = state.soundEnabled;
-let musicEnabled = state.musicEnabled === true;
+let musicEnabled = state.musicPreferenceSet ? state.musicEnabled !== false : true;
 let themeData = state.themes[activeTheme];
 let history = themeData.history;
 let viewed = themeData.viewed;
@@ -513,7 +513,8 @@ function validateBackupPayload(value) {
       drawMode: ['wheel', 'doors', 'shuffle', 'posters'].includes(record.drawMode) ? record.drawMode : 'wheel', drawPace: record.drawPace === 'suspense' ? 'suspense' : 'fast' };
   }
   if (value.data.musicEnabled !== undefined && typeof value.data.musicEnabled !== 'boolean') return null;
-  return { version: 5, activeTheme: value.data.activeTheme, language: value.data.language, soundEnabled: value.data.soundEnabled, musicEnabled: value.data.musicEnabled === true, themes };
+  if (value.data.musicPreferenceSet !== undefined && typeof value.data.musicPreferenceSet !== 'boolean') return null;
+  return { version: 5, activeTheme: value.data.activeTheme, language: value.data.language, soundEnabled: value.data.soundEnabled, musicEnabled: value.data.musicEnabled !== false, musicPreferenceSet: value.data.musicPreferenceSet ?? (typeof value.data.musicEnabled === 'boolean'), themes };
 }
 function backupStats(data) {
   const halloween = data.themes.halloween; const christmas = data.themes.christmas;
@@ -588,7 +589,7 @@ document.querySelector('#apply-backup-import').addEventListener('click', () => {
   if (!confirm(translate('confirmReplaceBackup', ...summary))) return;
   cancelOnlineContext(); setEditorOpen(false);
   state.version = 5; state.activeTheme = pendingBackupImport.activeTheme; state.language = pendingBackupImport.language; state.soundEnabled = pendingBackupImport.soundEnabled; state.themes.halloween = pendingBackupImport.themes.halloween; state.themes.christmas = pendingBackupImport.themes.christmas;
-  state.musicEnabled = pendingBackupImport.musicEnabled; musicEnabled = state.musicEnabled;
+  state.musicEnabled = pendingBackupImport.musicEnabled; state.musicPreferenceSet = pendingBackupImport.musicPreferenceSet; musicEnabled = state.musicEnabled;
   activeTheme = state.activeTheme; language = state.language; soundEnabled = state.soundEnabled; themeData = state.themes[activeTheme]; history = themeData.history; viewed = themeData.viewed; avoidViewed = themeData.avoidViewed; currentSession = themeData.sessions.at(-1) ?? null;
   drawModeSelect.value = themeData.drawMode ?? 'wheel'; drawPaceSelect.value = themeData.drawPace ?? 'fast';
   input.value = themeData.playlist.map(movie => movie.title).join('\n'); themeSelect.value = activeTheme; languageSelect.value = language; portabilityThemeSelect.value = activeTheme;
@@ -609,31 +610,55 @@ const backgroundMusic = new Audio('audio/halloween-theme.mp3');
 backgroundMusic.loop = true; backgroundMusic.volume = 0.18; backgroundMusic.preload = 'none';
 let musicPlayVersion = 0;
 let musicUnlocked = false;
+let musicPlayPending = false;
+let musicFailed = false;
 function syncMusicButton() {
   const button = document.querySelector('#music');
   button.hidden = activeTheme !== 'halloween';
   button.setAttribute('aria-pressed', String(musicEnabled));
-  button.textContent = translate(musicEnabled ? 'musicOff' : 'musicOn');
+  const label = translate(musicEnabled ? 'musicOff' : 'musicOn');
+  button.setAttribute('aria-label', label); button.title = label;
+  button.innerHTML = `<span aria-hidden="true">♫</span><span class="music-label">${translate('musicLabel')}</span><span class="music-state" aria-hidden="true">${musicEnabled ? 'ON' : 'OFF'}</span>`;
 }
 function syncMusicPlayback(allowPlay = false) {
-  const version = ++musicPlayVersion;
-  if (!musicEnabled || activeTheme !== 'halloween' || document.hidden) backgroundMusic.pause();
-  else if (allowPlay && musicUnlocked && backgroundMusic.paused) backgroundMusic.play().catch(() => {
-    if (version !== musicPlayVersion) return;
-    musicEnabled = false; persistState(); syncMusicButton();
-    document.querySelector('#music-status').textContent = translate('musicUnavailable');
-  });
   syncMusicButton();
+  if (!musicEnabled || activeTheme !== 'halloween' || document.hidden) {
+    ++musicPlayVersion; musicPlayPending = false; backgroundMusic.pause();
+    document.querySelector('#music-status').textContent = ''; return;
+  }
+  if (!allowPlay || !backgroundMusic.paused || musicPlayPending || musicFailed) return;
+  const version = ++musicPlayVersion;
+  musicPlayPending = true;
+  backgroundMusic.play().then(() => {
+    if (version !== musicPlayVersion) return;
+    musicPlayPending = false; document.querySelector('#music-status').textContent = '';
+  }).catch(error => {
+    if (version !== musicPlayVersion) return;
+    musicPlayPending = false;
+    // An autoplay block keeps the music armed for the next interaction.
+    if (error?.name === 'NotAllowedError' || error?.name === 'AbortError') return;
+    musicFailed = true; document.querySelector('#music-status').textContent = translate('musicUnavailable');
+  });
 }
 document.querySelector('#music').addEventListener('click', () => {
   musicUnlocked = true;
-  musicEnabled = !musicEnabled; document.querySelector('#music-status').textContent = '';
+  musicEnabled = !musicEnabled; state.musicPreferenceSet = true; musicFailed = false;
+  document.querySelector('#music-status').textContent = '';
   persistState(); syncMusicPlayback(true);
 });
-// A restored preference starts only after a user gesture, respecting autoplay rules.
-function unlockMusic() { musicUnlocked = true; syncMusicPlayback(true); }
+// Try autoplay first, then retry immediately on pointer, keyboard or scroll input.
+function unlockMusic(event) {
+  if (event?.target === document.querySelector('#music') || event?.target?.closest?.('#music')) return;
+  if (!musicUnlocked) { musicUnlocked = true; ++musicPlayVersion; musicPlayPending = false; }
+  syncMusicPlayback(true);
+}
 document.body.addEventListener('pointerdown', unlockMusic);
+document.body.addEventListener('pointerup', unlockMusic);
+document.body.addEventListener('click', unlockMusic);
 document.body.addEventListener('keydown', unlockMusic);
+document.body.addEventListener('touchstart', unlockMusic, { passive: true });
+document.body.addEventListener('wheel', unlockMusic, { passive: true });
+document.addEventListener?.('scroll', unlockMusic, { passive: true, capture: true });
 document.addEventListener?.('visibilitychange', () => syncMusicPlayback(true));
 let activeDoorSound = null;
 let doorSoundStartedAt = 0;
@@ -1318,6 +1343,7 @@ themeSelect.addEventListener('change', () => {
 syncTheme();
 updateList();
 renderHistory();
+syncMusicPlayback(true);
 document.fonts?.ready.then(() => drawWheel());
 
 document.querySelector('#storage-backup').addEventListener('click', () => downloadJSON(backupPayload(), 'halloween-roulette-backup.json'));
