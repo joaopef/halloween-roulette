@@ -41,7 +41,7 @@ async function createApp(seed = {}, options = {}) {
     static revokeObjectURL() {}
   }
   const urlImplementation = options.URL ?? InstrumentedURL;
-  const sandbox = vm.createContext({ document: { querySelector: node, querySelectorAll: selector => selector === '[data-i18n]' ? i18nKeys.map(key => { const element = node(`i18n:${key}`); element.setAttribute('data-i18n', key); return element; }) : selector === '[data-collection]' ? ['all', 'halloween-family', 'horror', 'christmas-classics', 'christmas-family'].map(key => { const element = node(`collection:${key}`); element.setAttribute('data-collection', key); return element; }) : selector === '.mystery-door' ? node('#doors').children : [], documentElement: {}, body: node('body'), createElement: tag => makeElement(tag), fonts: null }, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, Audio: class { constructor(src) { this.src = src; this.paused = true; this.playCount = 0; audios.push(this); } play() { this.paused = false; this.playCount++; return Promise.resolve(); } pause() { this.paused = true; } }, crypto: webcrypto, matchMedia: () => ({ matches: reduceMotion }), performance: { now: () => now }, requestAnimationFrame: fn => animationFrames.push(fn), confirm: message => { confirmMessage = message; return confirmDecision; }, URL: urlImplementation, AbortController, TextEncoder, TextDecoder, Uint8Array, btoa: value => Buffer.from(value, 'binary').toString('base64'), atob: value => Buffer.from(value, 'base64').toString('binary'), Blob, setTimeout, navigator: options.navigator ?? { clipboard: { writeText: async text => clipboardWrites.push(text) } }, location: options.location ?? { href: 'https://joaopef.github.io/halloween-roulette/' }, window: windowObject, fetch: fetchMock });
+  const sandbox = vm.createContext({ document: { querySelector: node, querySelectorAll: selector => selector === '[data-i18n]' ? i18nKeys.map(key => { const element = node(`i18n:${key}`); element.setAttribute('data-i18n', key); return element; }) : selector === '[data-collection]' ? ['all', 'halloween-family', 'horror', 'mystery', 'christmas-classics', 'christmas-family'].map(key => { const element = node(`collection:${key}`); element.setAttribute('data-collection', key); return element; }) : selector === '.mystery-door' ? node('#doors').children : [], documentElement: {}, body: node('body'), createElement: tag => makeElement(tag), fonts: null }, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, Audio: class { constructor(src) { this.src = src; this.paused = true; this.playCount = 0; audios.push(this); } play() { this.paused = false; this.playCount++; return Promise.resolve(); } pause() { this.paused = true; } }, crypto: webcrypto, matchMedia: () => ({ matches: reduceMotion }), performance: { now: () => now }, requestAnimationFrame: fn => animationFrames.push(fn), confirm: message => { confirmMessage = message; return confirmDecision; }, URL: urlImplementation, AbortController, TextEncoder, TextDecoder, Uint8Array, btoa: value => Buffer.from(value, 'binary').toString('base64'), atob: value => Buffer.from(value, 'base64').toString('binary'), Blob, setTimeout, navigator: options.navigator ?? { clipboard: { writeText: async text => clipboardWrites.push(text) } }, location: options.location ?? { href: 'https://joaopef.github.io/halloween-roulette/' }, window: windowObject, fetch: fetchMock });
   vm.runInContext(await readFile('movies.js', 'utf8'), sandbox);
   vm.runInContext(await readFile('catalog.js', 'utf8'), sandbox);
   vm.runInContext(await readFile('app.js', 'utf8'), sandbox);
@@ -560,22 +560,35 @@ assert.equal(vm.runInContext("movieIsAdded({title:'Abracadabra (1993)', tmdbId:1
 assert.equal(evaluate("sameMovieTitle({title:'Halloween (1978)'},{title:'Halloween (2018)'})"), false, 'different remakes remain distinct');
 assert.equal(evaluate("halloweenRecommendation({title:'Family camping', genres:['Family'], overview:{en:'A summer sports holiday'}})"), false);
 assert.equal(evaluate("halloweenRecommendation({title:'Spooky house', genres:['Family'], overview:{en:'A haunted house with ghosts'}})"), true);
+assert.equal(evaluate("halloweenRecommendation({title:'A strange disappearance', genres:['Mystery'], overview:{}})"), true, 'mystery is an accepted recommendation genre');
+vm.runInContext("selectedCollection='mystery'", localDetails.sandbox);
+assert.equal(vm.runInContext("localCatalogMatches().some(movie=>movie.title==='The Others (2001)')", localDetails.sandbox), true, 'offline mystery filters use genres, including films also classified as horror');
+assert.equal(localDetails.node('collection:mystery').hidden, false);
 const extendedCatalog = await createApp({}, { window: tmdbConfig, fetch: async url => {
   const seed = Number(new URL(url).pathname.match(/movie\/(\d+)/)?.[1]);
   return { ok: true, json: async () => ({ results: [
     { id:10439, original_title:'Hocus Pocus', title:'Hocus Pocus', release_date:'1993-07-16', genre_ids:[14,10751], overview:'Witches at Halloween' },
     { id:999999, title:'Sports family', genre_ids:[10751], overview:'A summer holiday' },
     { id:999998, title:'Unrelated fantasy', genre_ids:[14], overview:'An adventure in space' },
+    { id:999997, title:'A mystery', genre_ids:[9648], overview:'A disappearance' },
+    { id:999996, title:'A haunted mystery', genre_ids:[27,9648], overview:'A ghost' },
     ...Array.from({length:20}, (_,i)=>({id:seed*100+i, title:`Horror ${seed}-${i}`, release_date:'2020-01-01', genre_ids:[27], overview:'A scary story'}))
   ]}) };
 } });
 await vm.runInContext('loadRelatedRecommendations()', extendedCatalog.sandbox);
 assert.equal(extendedCatalog.node('#related-results').children.length,16);
 assert.equal(vm.runInContext('relatedCache.movies.some(movie=>movie.tmdbId===10439 || movie.tmdbId===999999 || movie.tmdbId===999998)',extendedCatalog.sandbox),false,'existing titles and unrelated family/fantasy films are excluded');
+assert.deepEqual(Array.from(vm.runInContext('relatedCache.movies.find(movie=>movie.tmdbId===999996).collections', extendedCatalog.sandbox)), ['horror','mystery'], 'a film can belong to both recommendation categories');
 await extendedCatalog.node('#related-more').dispatch('click');
 assert.equal(extendedCatalog.node('#related-results').children.length,32,'more recommendations exposes another batch without the old eight-film limit');
 vm.runInContext('addCatalogMovie(relatedCache.movies[0])',extendedCatalog.sandbox);
 assert.equal(vm.runInContext('relatedResults.children.some(card=>card.children[1].children[0].children[0].textContent===displayTitle(relatedCache.movies[0]))',extendedCatalog.sandbox),false,'adding a recommendation immediately removes its card');
+const previousSeeds = vm.runInContext('relatedCache.seedIndex', extendedCatalog.sandbox);
+await extendedCatalog.node('collection:mystery').dispatch('click');
+await vm.runInContext('loadRelatedRecommendations()', extendedCatalog.sandbox);
+assert.equal(extendedCatalog.node('#related-results').children.length,1, 'mystery excludes horror-only recommendations and the mystery just added to the playlist');
+assert.ok(vm.runInContext('relatedCache.seedIndex', extendedCatalog.sandbox)>previousSeeds,'switching category searches further seeds instead of returning an unrelated cached page');
+assert.equal(extendedCatalog.node('collection:mystery').getAttribute('aria-pressed'),'true');
 
 const noResultCatalog = await createApp({}, { window: tmdbConfig, fetch: async () => ({ ok: true, json: async () => ({ results: [] }) }) });
 noResultCatalog.node('#catalog-search').value = 'No such film';

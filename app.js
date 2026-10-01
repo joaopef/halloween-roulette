@@ -87,11 +87,11 @@ const COPY = {
     backupHelp: 'A cópia de segurança inclui as duas playlists, Wall of Fame, vistos, sessões e preferências locais.', exportBackup: 'Exportar cópia de segurança', chooseBackupFile: 'Escolher cópia de segurança JSON', applyBackupImport: 'Repor esta cópia de segurança', backupPreviewSummary: (halloweenCount, christmasCount, draws, watched, sessions) => `Halloween: ${halloweenCount} filmes · Natal: ${christmasCount} filmes · ${draws} sorteios · ${watched} vistos · ${sessions} sessões. A reposição substituirá os dados locais depois de confirmares.`, backupInvalid: 'Cópia de segurança inválida ou incompatível. Os dados locais foram mantidos.', confirmReplaceBackup: (halloweenCount, christmasCount, draws, watched, sessions) => `Substituir os dados locais por esta cópia? Halloween: ${halloweenCount} filmes; Natal: ${christmasCount}; ${draws} sorteios, ${watched} vistos, ${sessions} sessões.`, backupImported: 'Cópia de segurança reposta.', portabilityFileTooLarge: 'O ficheiro excede o limite de leitura de 2 MB.',
     metadataTitle: 'Metadados dos filmes', metadataHelp: 'Completa a duração e a disposição de filmes da tua lista. “Leve, com ambiente familiar” descreve o tom editorial e não garante adequação etária.', metadataMovieLabel: 'Filme', metadataRuntimeLabel: 'Duração em minutos', metadataMoodLegend: 'Disposições', saveMetadata: 'Guardar metadados', metadataSaved: 'Metadados guardados.', metadataInvalid: 'Indica uma duração entre 1 e 600 minutos ou deixa o campo vazio.', metadataNoMovies: 'Não há filmes na lista para editar.',
     discoverTitle: 'Descobrir filmes', discoverIntro: 'Sugestões temáticas curadas. Não são recomendações personalizadas por IA.', searchLabel: 'Pesquisar filmes por título', searchPlaceholder: 'Título do filme', searchButton: 'Pesquisar',
-    collectionLabel: 'Coleções temáticas', collectionAll: 'Todas as sugestões', collectionHalloweenFamily: 'Halloween em família', collectionHorror: 'Terror a sério', collectionChristmasClassics: 'Clássicos de Natal', collectionChristmasFamily: 'Natal em família',
+    collectionLabel: 'Coleções temáticas', collectionAll: 'Todas as sugestões', collectionHalloweenFamily: 'Halloween em família', collectionHorror: 'Terror', collectionMystery: 'Mistério', collectionChristmasClassics: 'Clássicos de Natal', collectionChristmasFamily: 'Natal em família',
     localCatalogStatus: 'Catálogo local curado. A pesquisa online TMDB não está ativa.', noCatalogResults: 'Não foram encontradas sugestões nesta coleção.', searchWorking: 'A pesquisar no catálogo TMDB…', tmdbSearchResults: count => `${count} resultados de pesquisa TMDB.`, tmdbNoResults: 'A pesquisa TMDB não encontrou filmes.', tmdbSearchError: 'Não foi possível contactar o catálogo TMDB. A mostrar as sugestões locais.',
     addMovie: title => `Adicionar ${title} à roleta`, alreadyAdded: 'Já adicionado', addToWheel: 'Adicionar à roleta', alreadyOnWheel: 'Já está na roleta', curatedLabel: 'Sugestão curada', tmdbLabel: 'Dados TMDB', posterUnavailable: 'Cartaz indisponível', posterAlt: title => `Cartaz de ${title}`,
     durationValue: minutes => `${minutes} min`, durationUnknown: 'Duração desconhecida', tmdbRating: rating => `TMDB ${rating.toFixed(1)}`, imdbLink: 'IMDb', noGenres: 'Géneros indisponíveis',
-    relatedTitle: 'Mais filmes para a noite de Halloween', relatedMore: 'Mais recomendações', relatedCount: count => `${count} sugestões novas · terror e fantasia assombrada`, relatedNoIds: 'A tua playlist ainda não tem IDs TMDB para pedir recomendações relacionadas.', relatedOffline: 'As recomendações relacionadas ficam disponíveis quando o serviço TMDB estiver configurado.', relatedLoading: 'A carregar sugestões relacionadas…', relatedEmpty: 'O TMDB não devolveu sugestões relacionadas.', relatedError: 'Não foi possível carregar sugestões relacionadas.',
+    relatedTitle: 'Mais filmes para a noite de Halloween', relatedMore: 'Mais recomendações', relatedCount: count => `${count} sugestões novas · terror, mistério e fantasia assombrada`, relatedNoIds: 'A tua playlist ainda não tem IDs TMDB para pedir recomendações relacionadas.', relatedOffline: 'As recomendações relacionadas ficam disponíveis quando o serviço TMDB estiver configurado.', relatedLoading: 'A carregar sugestões relacionadas…', relatedEmpty: 'O TMDB não devolveu sugestões relacionadas.', relatedError: 'Não foi possível carregar sugestões relacionadas.',
     tmdbNotice: 'Este produto utiliza a API TMDB, mas não é aprovado nem certificado pelo TMDB.', tmdbLogoAlt: 'The Movie Database (TMDB)',
     historyEyebrow: 'AS SESSÕES PASSADAS', wallTitle: 'Mural da Fama', clearHistory: 'Limpar histórico', historyNote: 'Os sorteios ficam guardados apenas neste navegador.',
     historyStats: (movies, draws) => `${movies} ${movies === 1 ? 'filme diferente' : 'filmes diferentes'} · ${draws} ${draws === 1 ? 'sorteio' : 'sorteios'}`,
@@ -123,11 +123,11 @@ const COPY = {
     backupHelp: 'The backup includes both playlists, Wall of Fame, watched movies, sessions, and local preferences.', exportBackup: 'Export backup', chooseBackupFile: 'Choose backup JSON file', applyBackupImport: 'Restore this backup', backupPreviewSummary: (halloweenCount, christmasCount, draws, watched, sessions) => `Halloween: ${halloweenCount} movies · Christmas: ${christmasCount} movies · ${draws} draws · ${watched} watched · ${sessions} sessions. Restoring will replace local data after confirmation.`, backupInvalid: 'Backup file is invalid or incompatible. Local data was preserved.', confirmReplaceBackup: (halloweenCount, christmasCount, draws, watched, sessions) => `Replace local data with this backup? Halloween: ${halloweenCount} movies; Christmas: ${christmasCount}; ${draws} draws, ${watched} watched, ${sessions} sessions.`, backupImported: 'Backup restored.', portabilityFileTooLarge: 'File exceeds the 2 MB import limit.',
     metadataTitle: 'Movie metadata', metadataHelp: 'Fill in runtime and mood for movies on your list. “Light, family-oriented” describes editorial tone and does not guarantee age suitability.', metadataMovieLabel: 'Movie', metadataRuntimeLabel: 'Runtime in minutes', metadataMoodLegend: 'Moods', saveMetadata: 'Save metadata', metadataSaved: 'Metadata saved.', metadataInvalid: 'Enter a runtime from 1 to 600 minutes or leave it blank.', metadataNoMovies: 'There are no movies on the list to edit.',
     discoverTitle: 'Discover movies', discoverIntro: 'Curated theme suggestions. These are not AI-personalized recommendations.', searchLabel: 'Search movies by title', searchPlaceholder: 'Movie title', searchButton: 'Search',
-    collectionLabel: 'Themed collections', collectionAll: 'All suggestions', collectionHalloweenFamily: 'Halloween for families', collectionHorror: 'Proper scares', collectionChristmasClassics: 'Christmas classics', collectionChristmasFamily: 'Christmas for families',
+    collectionLabel: 'Themed collections', collectionAll: 'All suggestions', collectionHalloweenFamily: 'Halloween for families', collectionHorror: 'Horror', collectionMystery: 'Mystery', collectionChristmasClassics: 'Christmas classics', collectionChristmasFamily: 'Christmas for families',
     localCatalogStatus: 'Curated local catalogue. TMDB online search is not active.', noCatalogResults: 'No suggestions were found in this collection.', searchWorking: 'Searching the TMDB catalogue…', tmdbSearchResults: count => `${count} TMDB search results.`, tmdbNoResults: 'TMDB search found no movies.', tmdbSearchError: 'Could not reach the TMDB catalogue. Showing local suggestions.',
     addMovie: title => `Add ${title} to the wheel`, alreadyAdded: 'Already added', addToWheel: 'Add to the wheel', alreadyOnWheel: 'Already on the wheel', curatedLabel: 'Curated suggestion', tmdbLabel: 'TMDB data', posterUnavailable: 'Poster unavailable', posterAlt: title => `Poster for ${title}`,
     durationValue: minutes => `${minutes} min`, durationUnknown: 'Duration unknown', tmdbRating: rating => `TMDB ${rating.toFixed(1)}`, imdbLink: 'IMDb', noGenres: 'Genres unavailable',
-    relatedTitle: 'More movies for Halloween night', relatedMore: 'More recommendations', relatedCount: count => `${count} new suggestions · horror and haunted fantasy`, relatedNoIds: 'Your playlist has no TMDB IDs yet, so related recommendations are unavailable.', relatedOffline: 'Related recommendations will be available when the TMDB service is configured.', relatedLoading: 'Loading related suggestions…', relatedEmpty: 'TMDB returned no related suggestions.', relatedError: 'Related suggestions could not be loaded.',
+    relatedTitle: 'More movies for Halloween night', relatedMore: 'More recommendations', relatedCount: count => `${count} new suggestions · horror, mystery and haunted fantasy`, relatedNoIds: 'Your playlist has no TMDB IDs yet, so related recommendations are unavailable.', relatedOffline: 'Related recommendations will be available when the TMDB service is configured.', relatedLoading: 'Loading related suggestions…', relatedEmpty: 'TMDB returned no related suggestions.', relatedError: 'Related suggestions could not be loaded.',
     tmdbNotice: 'This product uses the TMDB API but is not endorsed or certified by TMDB.', tmdbLogoAlt: 'The Movie Database (TMDB)',
     historyEyebrow: 'PAST MOVIE NIGHTS', wallTitle: 'Wall of Fame', clearHistory: 'Clear history', historyNote: 'Draws are stored only in this browser.',
     historyStats: (movies, draws) => `${movies} unique ${movies === 1 ? 'movie' : 'movies'} · ${draws} ${draws === 1 ? 'draw' : 'draws'}`,
@@ -468,11 +468,11 @@ function renderLanguage() {
   catalogSearchInput.placeholder = translate('searchPlaceholder');
   document.querySelector('#catalog-search-button').textContent = translate('searchButton');
   document.querySelector('#catalog-collections').setAttribute('aria-label', translate('collectionLabel'));
-  const collectionLabels = { all: 'collectionAll', 'halloween-family': 'collectionHalloweenFamily', horror: 'collectionHorror', 'christmas-classics': 'collectionChristmasClassics', 'christmas-family': 'collectionChristmasFamily' };
+  const collectionLabels = { all: 'collectionAll', 'halloween-family': 'collectionHalloweenFamily', horror: 'collectionHorror', mystery: 'collectionMystery', 'christmas-classics': 'collectionChristmasClassics', 'christmas-family': 'collectionChristmasFamily' };
   document.querySelectorAll('[data-collection]').forEach(button => {
     const collection = button.getAttribute('data-collection');
     if (collectionLabels[collection]) button.textContent = translate(collectionLabels[collection]);
-    const isForTheme = collection === 'all' || (activeTheme === 'halloween' ? ['halloween-family', 'horror'].includes(collection) : ['christmas-classics', 'christmas-family'].includes(collection));
+    const isForTheme = collection === 'all' || (activeTheme === 'halloween' ? ['halloween-family', 'horror', 'mystery'].includes(collection) : ['christmas-classics', 'christmas-family'].includes(collection));
     button.hidden = !isForTheme;
     button.classList.toggle('is-selected', collection === selectedCollection);
     button.setAttribute('aria-pressed', String(collection === selectedCollection));
@@ -1040,7 +1040,11 @@ function renderEligibility(redraw = true) {
   return eligible;
 }
 function displayTitle(movie) { return String(movie.title ?? '').replace(/\s*\(\d{4}\)\s*$/, ''); }
-function matchesCollection(movie) { return selectedCollection === 'all' || (Array.isArray(movie.collections) && movie.collections.includes(selectedCollection)); }
+function matchesCollection(movie) {
+  return selectedCollection === 'all' || movie.collections?.includes(selectedCollection) ||
+    (selectedCollection === 'horror' && movie.genres?.includes('Horror')) ||
+    (selectedCollection === 'mystery' && movie.genres?.includes('Mystery'));
+}
 function matchesSearch(movie, query) {
   const cleanQuery = normalizeTitle(query);
   if (!cleanQuery) return true;
@@ -1309,13 +1313,16 @@ function addCatalogMovie(movie) {
   renderCatalog(); renderRelatedRecommendations();
 }
 function halloweenRecommendation(movie) {
-  if (movie.genres.includes('Horror')) return true;
+  if (movie.genres.some(genre => ['Horror', 'Mystery'].includes(genre))) return true;
   if (!movie.genres.some(genre => ['Family', 'Fantasy'].includes(genre))) return false;
   const words = [movie.title, movie.translatedTitle, ...Object.values(movie.overview ?? {})].join(' ');
   return /halloween|haunt|ghost|witch|vampir|zombi|werewolf|monster|spooky|macabre|undead|supernatural|fantasm|bruxa|assombr|lobisom|monstr|sobrenatural|macabr|mortos.vivos/i.test(words);
 }
 function recommendationSeeds() {
-  const ids = [...playlistRecords().map(movie => movie.tmdbId).filter(Number.isSafeInteger), ...playlistRecords().map(knownTmdbId).filter(Boolean)];
+  // Sleepy Hollow, Odd Thomas, Scream (1996), Monster House: verified TMDB
+  // identities from https://www.imdb.com/list/ls052334489/ (movies only).
+  const ids = activeTheme === 'halloween' ? [2668, 179826, 4232, 9297] : [];
+  ids.push(...playlistRecords().map(movie => movie.tmdbId).filter(Number.isSafeInteger), ...playlistRecords().map(knownTmdbId).filter(Boolean));
   if (activeTheme === 'halloween') ids.push(948, 10439, 4011, 14836, 1933, 138843, 2907, 23202, 10166, 77174, 62214, 927, ...Object.values(HALLOWEEN_TMDB_IDS));
   return [...new Set(ids)];
 }
@@ -1343,7 +1350,7 @@ async function loadRelatedRecommendations(more = false) {
   const seeds = cache.seeds ?? (cache.seeds = recommendationSeeds());
   if (!seeds.length) { document.querySelector('#related-status').textContent = translate('relatedNoIds'); return; }
   if (more) cache.visible += 16;
-  if (!more && cache.movies.length) { renderRelatedRecommendations(); return; }
+  if (!more && (cache.movies.filter(movie => !movieIsAdded(movie) && matchesCollection(movie)).length >= cache.visible || cache.seedIndex >= seeds.length)) { renderRelatedRecommendations(); return; }
   cache.loading = true;
   relatedController = new AbortController();
   const { signal } = relatedController;
@@ -1360,7 +1367,10 @@ async function loadRelatedRecommendations(more = false) {
         if (!Number.isSafeInteger(item.id) || item.adult === true) continue;
         const movie = normalizeTmdbMovie(item, null);
         if (!movie || movieIsAdded(movie) || (CURATED_CATALOG[activeTheme] ?? []).some(curated => knownTmdbId(curated) === movie.tmdbId || sameMovieTitle(curated, movie)) || (activeTheme === 'halloween' && !halloweenRecommendation(movie))) continue;
-        movie.collections = movie.genres.includes('Horror') ? ['horror'] : ['halloween-family'];
+        movie.collections = [];
+        if (movie.genres.includes('Horror')) movie.collections.push('horror');
+        if (movie.genres.includes('Mystery')) movie.collections.push('mystery');
+        if (movie.genres.some(genre => ['Family', 'Fantasy'].includes(genre))) movie.collections.push('halloween-family');
         if (!cache.movies.some(existing => existing.tmdbId === movie.tmdbId || sameMovieTitle(existing, movie))) cache.movies.push(movie);
       }
     }
@@ -1438,6 +1448,7 @@ document.querySelectorAll('[data-collection]').forEach(button => button.addEvent
   selectedCollection = button.getAttribute('data-collection') || 'all';
   remoteSearchResults = null; catalogStatusOverride = '';
   renderLanguage();
+  if (document.querySelector('#discover-panel').open) return loadRelatedRecommendations();
 }));
 document.querySelector('#discover-panel').addEventListener('toggle', event => { if (event.target.open) loadRelatedRecommendations(); });
 function randomIndex(length) {
