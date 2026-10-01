@@ -7,14 +7,16 @@ const ALLOWED_ORIGINS = new Set([
 const WINDOW_MS = 60_000;
 const REQUESTS_PER_WINDOW = 90;
 
-function json(body, status, origin) {
+function json(body, status, origin, retryAfter = null) {
   const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Vary': 'Origin' });
   if (origin && ALLOWED_ORIGINS.has(origin)) {
     headers.set('Access-Control-Allow-Origin', origin);
     headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
     headers.set('Access-Control-Allow-Headers', 'Accept, Content-Type');
     headers.set('Access-Control-Max-Age', '86400');
+    headers.set('Access-Control-Expose-Headers', 'Retry-After');
   }
+  if (retryAfter) headers.set('Retry-After', retryAfter);
   return new Response(JSON.stringify(body), { status, headers });
 }
 
@@ -56,7 +58,7 @@ async function allowRequest(env, request) {
   const opaqueName = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
   const stub = env.RATE_LIMITER.get(env.RATE_LIMITER.idFromName(opaqueName));
   const response = await stub.fetch('https://rate-limit.internal/check', { method: 'POST' });
-  return response.ok;
+  return { allowed: response.ok, retryAfter: response.headers.get('Retry-After') };
 }
 
 export class CinemaRateLimiter {
@@ -96,10 +98,13 @@ export default {
       const target = upstreamPath(route, incoming);
       if (!target) return json({ error: 'Endpoint not allowed.' }, 404, origin);
       if (target.error) return json({ error: target.message }, target.error, origin);
-      if (!(await allowRequest(env, request))) return json({ error: 'Rate limiter unavailable or request limit reached.' }, 429, origin);
+      const limit = await allowRequest(env, request);
+      if (!limit) return json({ error: 'Rate limiter unavailable.' }, 503, origin);
+      if (!limit.allowed) return json({ error: 'Request limit reached.' }, 429, origin, limit.retryAfter || '60');
       const response = await fetch(target, {
         method: 'GET',
-        headers: { Accept: 'application/json', Authorization: `Bearer ${env.TMDB_API_READ_ACCESS_TOKEN}` }
+        headers: { Accept: 'application/json', Authorization: `Bearer ${env.TMDB_API_READ_ACCESS_TOKEN}` },
+        signal: AbortSignal.timeout(8000)
       });
       const body = await response.text();
       return new Response(body, {
@@ -108,7 +113,9 @@ export default {
           'Content-Type': response.headers.get('Content-Type') || 'application/json; charset=utf-8',
           'Cache-Control': 'no-store', 'Vary': 'Origin',
           'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Accept, Content-Type', 'Access-Control-Max-Age': '86400'
+          'Access-Control-Allow-Headers': 'Accept, Content-Type', 'Access-Control-Max-Age': '86400',
+          'Access-Control-Expose-Headers': 'Retry-After',
+          ...(response.headers.get('Retry-After') ? { 'Retry-After': response.headers.get('Retry-After') } : {})
         }
       });
     } catch {

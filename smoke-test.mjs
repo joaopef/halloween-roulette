@@ -41,14 +41,105 @@ async function createApp(seed = {}, options = {}) {
     static revokeObjectURL() {}
   }
   const urlImplementation = options.URL ?? InstrumentedURL;
-  const sandbox = vm.createContext({ document: { querySelector: node, querySelectorAll: selector => selector === '[data-i18n]' ? i18nKeys.map(key => { const element = node(`i18n:${key}`); element.setAttribute('data-i18n', key); return element; }) : selector === '[data-collection]' ? ['all', 'halloween-family', 'horror', 'mystery', 'christmas-classics', 'christmas-family'].map(key => { const element = node(`collection:${key}`); element.setAttribute('data-collection', key); return element; }) : selector === '.mystery-door' ? node('#doors').children : [], documentElement: {}, body: node('body'), createElement: tag => makeElement(tag), fonts: null }, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, Audio: class { constructor(src) { this.src = src; this.paused = true; this.playCount = 0; audios.push(this); } play() { this.paused = false; this.playCount++; return Promise.resolve(); } pause() { this.paused = true; } }, crypto: webcrypto, matchMedia: () => ({ matches: reduceMotion }), performance: { now: () => now }, requestAnimationFrame: fn => animationFrames.push(fn), confirm: message => { confirmMessage = message; return confirmDecision; }, URL: urlImplementation, AbortController, TextEncoder, TextDecoder, Uint8Array, btoa: value => Buffer.from(value, 'binary').toString('base64'), atob: value => Buffer.from(value, 'base64').toString('binary'), Blob, setTimeout, navigator: options.navigator ?? { clipboard: { writeText: async text => clipboardWrites.push(text) } }, location: options.location ?? { href: 'https://joaopef.github.io/halloween-roulette/' }, window: windowObject, fetch: fetchMock });
+  const sandbox = vm.createContext({ document: { querySelector: node, querySelectorAll: selector => selector === '[data-i18n]' ? i18nKeys.map(key => { const element = node(`i18n:${key}`); element.setAttribute('data-i18n', key); return element; }) : selector === '[data-collection]' ? ['all', 'halloween-family', 'horror', 'mystery', 'christmas-classics', 'christmas-family'].map(key => { const element = node(`collection:${key}`); element.setAttribute('data-collection', key); return element; }) : selector === '.mystery-door' ? node('#doors').children : [], documentElement: {}, body: node('body'), createElement: tag => makeElement(tag), fonts: null }, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => { if (options.failStorage) throw new Error('Quota exceeded'); storage.set(key, value); } }, Audio: class { constructor(src) { this.src = src; this.paused = true; this.playCount = 0; audios.push(this); } play() { this.paused = false; this.playCount++; return Promise.resolve(); } pause() { this.paused = true; } }, crypto: webcrypto, matchMedia: () => ({ matches: reduceMotion }), performance: { now: () => now }, requestAnimationFrame: fn => animationFrames.push(fn), confirm: message => { confirmMessage = message; return confirmDecision; }, URL: urlImplementation, AbortController, TextEncoder, TextDecoder, Uint8Array, btoa: value => Buffer.from(value, 'binary').toString('base64'), atob: value => Buffer.from(value, 'base64').toString('binary'), Blob, setTimeout, clearTimeout, DOMException, navigator: options.navigator ?? { clipboard: { writeText: async text => clipboardWrites.push(text) } }, location: options.location ?? { href: 'https://joaopef.github.io/halloween-roulette/' }, window: windowObject, fetch: fetchMock });
   vm.runInContext(await readFile('movies.js', 'utf8'), sandbox);
   vm.runInContext(await readFile('catalog.js', 'utf8'), sandbox);
-  vm.runInContext(await readFile('app.js', 'utf8'), sandbox);
+  for (const file of ['translations.js', 'storage.js', 'tmdb.js', 'drawing.js', 'collection.js', 'app.js']) vm.runInContext(await readFile(file, 'utf8'), sandbox);
   return { node, storage, audios, animationFrames, sandbox, requests, downloads, downloadNames, clipboardWrites, setNow: value => { now = value; }, setReduceMotion: value => { reduceMotion = value; }, setConfirm: value => { confirmDecision = value; }, confirmMessage: () => confirmMessage };
 }
 
 const app = await createApp();
+const musicApp = await createApp();
+const musicEval = code => vm.runInContext(code, musicApp.sandbox);
+assert.equal(musicEval('backgroundMusic.loop'), true);
+assert.equal(musicEval('backgroundMusic.paused'), true, 'background music never autoplays on load');
+musicApp.node('#music').dispatch('click');
+assert.equal(musicEval('backgroundMusic.paused'), false);
+assert.equal(JSON.parse(musicApp.storage.get('cinema-roulette-v5')).musicEnabled, true);
+musicApp.node('#sound').dispatch('click');
+assert.equal(musicEval('backgroundMusic.paused'), false, 'effects and music have independent controls');
+musicApp.node('#theme').value = 'christmas'; musicApp.node('#theme').dispatch('change');
+assert.equal(musicEval('backgroundMusic.paused'), true, 'Halloween music pauses in the Christmas theme');
+assert.equal(musicApp.node('#music').hidden, true);
+musicApp.node('#theme').value = 'halloween'; musicApp.node('#theme').dispatch('change');
+assert.equal(musicEval('backgroundMusic.paused'), false);
+musicApp.node('#language').value = 'en'; musicApp.node('#language').dispatch('change');
+assert.equal(musicApp.node('#music').textContent, '♫ Turn off background music');
+const restoredMusic = await createApp({ 'cinema-roulette-v5': JSON.parse(musicApp.storage.get('cinema-roulette-v5')) });
+assert.equal(vm.runInContext('backgroundMusic.paused', restoredMusic.sandbox), true, 'restored preference still waits for a user gesture');
+restoredMusic.node('body').dispatch('keydown');
+assert.equal(vm.runInContext('backgroundMusic.paused', restoredMusic.sandbox), false);
+assert.equal(musicEval('validateBackupPayload(backupPayload()).musicEnabled'), true, 'backups retain the music preference');
+musicApp.node('#music').dispatch('click');
+assert.equal(musicEval('backgroundMusic.paused'), true);
+musicEval("backgroundMusic.play = () => Promise.reject(new Error('Unavailable'))");
+musicApp.node('#music').dispatch('click'); await Promise.resolve();
+assert.equal(musicEval('musicEnabled'), false);
+assert.match(musicApp.node('#music-status').textContent, /Could not play/);
+assert.equal(musicEval("doorSounds[2].src"), 'door-ghost.wav', 'existing ghost sound remains unchanged');
+assert.equal(musicEval("doorSounds[0].src"), 'audio/zombie.mp3');
+assert.equal(musicEval("doorSounds[1].src"), 'audio/witch-laugh.mp3');
+assert.equal(musicEval("alternateWitchSound.src"), 'audio/witch-laugh-evil.mp3');
+// Regression: draft text and selection survive input and unrelated persistence.
+const draftApp = await createApp();
+const draftEval = code => vm.runInContext(code, draftApp.sandbox);
+draftApp.node('#edit-toggle').dispatch('click');
+const rawDraft = '  A film  \n\n  Another film\n';
+draftApp.node('#movies').value = rawDraft;
+draftApp.node('#movies').selectionStart = 5; draftApp.node('#movies').selectionEnd = 5;
+draftApp.node('#movies').dispatch('input');
+draftApp.node('#sound').dispatch('click');
+assert.equal(draftApp.node('#movies').value, rawDraft);
+assert.equal(draftApp.node('#movies').selectionStart, 5);
+assert.equal(draftEval('playlistRecords().length'), 19);
+draftApp.node('#cancel-edit').dispatch('click');
+assert.equal(draftEval('playlistRecords().length'), 19);
+draftApp.node('#edit-toggle').dispatch('click');
+draftApp.node('#movies').value = 'A\n A \nB'; draftApp.node('#movies').dispatch('input');
+draftApp.node('#finish-edit').dispatch('click');
+assert.equal(draftEval('playlistRecords().length'), 2);
+draftApp.node('#edit-toggle').dispatch('click');
+const invalidDraft = Array.from({ length: 61 }, (_, index) => `Title ${index}`).join('\n');
+draftApp.node('#movies').value = invalidDraft; draftApp.node('#movies').dispatch('input');
+draftApp.node('#finish-edit').dispatch('click');
+assert.equal(draftApp.node('#movies').value, invalidDraft);
+assert.equal(draftApp.node('#movie-editor').hidden, false);
+assert.equal(draftEval('playlistRecords().length'), 2);
+draftApp.node('#cancel-edit').dispatch('click');
+draftEval("themeData.playlist[0].runtimeMinutes = 91; history['manual:a'] = { id:'manual:a', title:'A', count:3 }; viewed = ['manual:a']; persistState()");
+assert.equal(draftEval("renameMovie('manual:a', 'Renamed A')"), true);
+assert.equal(draftEval("playlistRecords()[0].id"), 'manual:a');
+assert.equal(draftEval("playlistRecords()[0].runtimeMinutes"), 91);
+assert.equal(draftEval("history['manual:a'].count"), 3);
+assert.equal(draftEval("viewed[0]"), 'manual:a');
+assert.equal(draftEval("validatePlaylistPayload(playlistFilePayload(activeTheme)) !== null"), true, 'renamed identities round trip through playlist exports');
+assert.equal(draftEval("validateBackupPayload(backupPayload()) !== null"), true);
+draftEval("removeMovie('manual:a')");
+assert.equal(draftEval('playlistRecords().length'), 1);
+draftEval('undoRemoval()');
+assert.equal(draftEval("playlistRecords()[0].id"), 'manual:a');
+assert.equal(draftEval("playlistRecords()[0].runtimeMinutes"), 91);
+draftApp.node('#edit-toggle').dispatch('click');
+draftApp.node('#movies').value = 'Bulk renamed A\nB'; draftApp.node('#finish-edit').dispatch('click');
+assert.equal(draftEval('playlistRecords()[0].id'), 'manual:a', 'changing a title line keeps its identity');
+assert.equal(draftEval('playlistRecords()[0].runtimeMinutes'), 91);
+const curatedBackupApp = await createApp();
+await vm.runInContext("addCatalogMovie(CURATED_CATALOG.halloween.find(movie => movie.title === 'Gremlins (1984)'))", curatedBackupApp.sandbox);
+assert.equal(vm.runInContext('validateBackupPayload(backupPayload()) !== null', curatedBackupApp.sandbox), true, 'curated identities survive backup validation');
+const failingStorage = await createApp({}, { failStorage: true });
+assert.equal(failingStorage.node('#storage-warning').hidden, false);
+failingStorage.node('#edit-toggle').dispatch('click');
+failingStorage.node('#movies').value = 'Still in memory'; failingStorage.node('#finish-edit').dispatch('click');
+assert.equal(vm.runInContext('playlistRecords()[0].title', failingStorage.sandbox), 'Still in memory');
+assert.match(failingStorage.node('#list-status').textContent, /memória/);
+assert.equal(failingStorage.storage.size, 0);
+failingStorage.node('#language').value = 'en'; failingStorage.node('#language').dispatch('change');
+assert.match(failingStorage.node('#storage-warning-text').textContent, /only in memory/);
+failingStorage.node('#storage-backup').dispatch('click');
+assert.equal(failingStorage.downloads.length, 1);
+assert.equal(JSON.parse(await failingStorage.downloads[0].text()).data.themes.halloween.playlist[0].title, 'Still in memory');
+vm.runInContext('localStorage.setItem = () => {}; persistState()', failingStorage.sandbox);
+assert.equal(failingStorage.node('#storage-warning').hidden, true, 'warning clears after a successful retry');
 const { node, storage, audios, animationFrames, sandbox } = app;
 const evaluate = expression => vm.runInContext(expression, sandbox);
 assert.equal(node('#count').textContent, 19);
@@ -85,17 +176,17 @@ assert.equal(node('#theme').value, 'halloween');
 
 node('#edit-toggle').dispatch('click');
 assert.equal(node('#movie-editor').hidden, false);
-node('#movies').value = 'Only one\nOnly one\n'; node('#movies').dispatch('input');
+node('#movies').value = 'Only one\nOnly one\n'; node('#movies').dispatch('input'); node('#finish-edit').dispatch('click');
 assert.equal(node('#count').textContent, 1); assert.equal(node('#eligible-count').textContent, 1); assert.equal(node('#spin').disabled, false);
 const singleSpin = evaluate('spin()'); app.setNow(5000); animationFrames.shift()(5000);
 assert.equal((await singleSpin).movie, 'Only one', 'a single eligible movie can be drawn');
 assert.equal(node('#history-stats').textContent, '18 unique movies · 25 draws');
-node('#movies').value = 'A\nB'; node('#movies').dispatch('input');
+node('#movies').value = 'A\nB'; node('#movies').dispatch('input'); node('#finish-edit').dispatch('click');
 assert.equal(evaluate('movieList().length'), 2, 'duplicates are removed');
 const originalMovies = node('#movies').value;
-node('#reset').dispatch('click');
+node('#edit-toggle').dispatch('click'); node('#reset').dispatch('click'); node('#finish-edit').dispatch('click');
 assert.equal(node('#count').textContent, 19, 'reset restores the original selection');
-node('#movies').value = originalMovies; node('#movies').dispatch('input');
+node('#movies').value = originalMovies; node('#movies').dispatch('input'); node('#finish-edit').dispatch('click');
 node('#finish-edit').dispatch('click');
 assert.equal(node('#movie-editor').hidden, true);
 
@@ -169,9 +260,9 @@ assert.equal(JSON.stringify(JSON.parse(storage.get('cinema-roulette-v5')).themes
 
 node('#sound').dispatch('click');
 assert.equal(audios.every(audio => audio.paused), true, 'turning sound off after the spin silences the chime');
-node('#movies').value = Array.from({ length: 61 }, (_, i) => `Film ${i}`).join('\n'); node('#movies').dispatch('input');
-assert.equal(node('#spin').disabled, true); assert.match(node('#list-status').textContent, /60/);
-node('#movies').value = Array.from({ length: 60 }, (_, i) => `Film ${i}`).join('\n'); node('#movies').dispatch('input');
+node('#movies').value = Array.from({ length: 61 }, (_, i) => `Film ${i}`).join('\n'); node('#movies').dispatch('input'); node('#finish-edit').dispatch('click');
+assert.equal(node('#count').textContent, 2, 'invalid draft preserves collection'); assert.match(node('#editor-error').textContent, /60/);
+node('#movies').value = Array.from({ length: 60 }, (_, i) => `Film ${i}`).join('\n'); node('#movies').dispatch('input'); node('#finish-edit').dispatch('click');
 assert.equal(node('#spin').disabled, false);
 
 // Theme state stays independent, including the curated Christmas starter list.
@@ -201,7 +292,7 @@ assert.equal(node('#count').textContent, 14, 'curated catalogue movie can be add
 assert.equal(evaluate('movieIsAdded(CURATED_CATALOG.christmas.find(movie => movie.title === \'The Holiday (2006)\'))'), true, 'newly added suggestion changes to already added state');
 assert.equal(evaluate('playlistRecords().at(-1).source'), 'curated', 'local movie keeps a manual curation source');
 assert.equal(holiday.tmdbRating, null, 'local catalogue does not invent a TMDB rating');
-node('#movies').value = 'Holiday A (2000)\nHoliday B (2001)'; node('#movies').dispatch('input');
+node('#movies').value = 'Holiday A (2000)\nHoliday B (2001)'; node('#movies').dispatch('input'); node('#finish-edit').dispatch('click');
 node('#theme').value = 'halloween'; node('#theme').dispatch('change');
 assert.equal(node('#count').textContent, 60);
 assert.equal(node('#history-stats').textContent, '20 filmes diferentes · 27 sorteios');
@@ -420,7 +511,7 @@ assert.equal(JSON.parse(await portableSource.downloads.at(-1).text()).format, 'h
 const portableNewMovie = { id: 'manual:shared portable film (2022)', title: 'Shared Portable Film (2022)' };
 const portableImport = { format: 'halloween-roulette-playlist', version: 1, theme: 'christmas', playlist: [{ id: christmasFirstId, title: christmasFirstTitle }, portableNewMovie] };
 assert.equal(vm.runInContext(`validatePlaylistPayload(${JSON.stringify(portableImport)}) !== null`, portableSource.sandbox), true);
-assert.equal(vm.runInContext(`validatePlaylistPayload(${JSON.stringify({ ...portableImport, playlist: [{ id: 'manual:forged', title: 'Different title' }] })}) === null`, portableSource.sandbox), true, 'playlist import rejects IDs which do not match the title or TMDB ID');
+assert.equal(vm.runInContext(`validatePlaylistPayload(${JSON.stringify({ ...portableImport, playlist: [{ id: 'invalid:forged', title: 'Different title' }] })}) === null`, portableSource.sandbox), true, 'playlist import rejects IDs which do not match the title or TMDB ID');
 const portableTarget = await createApp();
 const portableStorageBefore = portableTarget.storage.get('cinema-roulette-v5');
 portableTarget.node('#playlist-file-input').files = [{ size: JSON.stringify(portableImport).length, text: async () => JSON.stringify(portableImport) }];
@@ -510,6 +601,36 @@ assert.match(invalidBackupTarget.node('#portability-status').textContent, /invá
 assert.equal(invalidBackupTarget.storage.get('cinema-roulette-v5'), invalidBackupBefore, 'invalid backups never alter local data');
 
 const tmdbConfig = { CINEMA_CATALOG_PROXY_URL: 'https://catalog.example/api/3/', CINEMA_TMDB_LOGO_URL: 'https://assets.example/tmdb-approved.svg' };
+const pendingSearches = [];
+const racedCatalog = await createApp({}, { window: tmdbConfig, fetch: (url, options) => new Promise(resolve => pendingSearches.push({ resolve, url, signal: options.signal })) });
+const raceEval = code => vm.runInContext(code, racedCatalog.sandbox);
+const firstSearch = raceEval("searchOnline('old')");
+const secondSearch = raceEval("searchOnline('new')");
+const searchResponse = title => ({ ok: true, json: async () => ({ results: [{ id: 123456, original_title: title }] }) });
+assert.equal(pendingSearches[0].signal.aborted, true);
+pendingSearches[1].resolve(searchResponse('New result')); await secondSearch;
+pendingSearches[0].resolve(searchResponse('Old result')); await firstSearch;
+assert.equal(raceEval('remoteSearchResults[0].title'), 'New result');
+assert.equal(pendingSearches.length, 2, 'search never waits for detail requests');
+const languageSearch = raceEval("searchOnline('language')");
+racedCatalog.node('#language').value = 'en'; racedCatalog.node('#language').dispatch('change');
+pendingSearches[2].resolve(searchResponse('Wrong language')); await languageSearch;
+assert.equal(raceEval('remoteSearchResults'), null);
+const themeSearch = raceEval("searchOnline('theme')");
+racedCatalog.node('#theme').value = 'christmas'; racedCatalog.node('#theme').dispatch('change');
+pendingSearches[3].resolve(searchResponse('Wrong theme')); await themeSearch;
+assert.equal(raceEval('remoteSearchResults'), null);
+const rateCatalog = await createApp({}, { window: tmdbConfig, fetch: async () => ({ ok: false, status: 429, headers: new Headers({ 'Retry-After': '120' }) }) });
+await vm.runInContext("searchOnline('movie')", rateCatalog.sandbox);
+assert.match(rateCatalog.node('#catalog-status').textContent, /Limite de pedidos/);
+const rateRequestCount = rateCatalog.requests.length;
+await vm.runInContext("searchOnline('another')", rateCatalog.sandbox);
+assert.equal(rateCatalog.requests.length, rateRequestCount, 'Retry-After prevents premature requests');
+const hangingCatalog = await createApp({}, { window: tmdbConfig, fetch: () => new Promise(() => {}) });
+await vm.runInContext("searchOnline('Casper')", hangingCatalog.sandbox);
+assert.equal(hangingCatalog.requests[0].requestOptions.signal.aborted, true, 'timeout aborts a hanging network request');
+assert.match(hangingCatalog.node('#catalog-status').textContent, /indisponível/);
+assert.equal(hangingCatalog.node('#catalog-results').children.length > 0, true, 'timeout restores local suggestions');
 const tmdbCalls = [];
 const onlineCatalog = await createApp({}, { window: tmdbConfig, fetch: async (url, requestOptions) => {
   const parsed = new URL(url); tmdbCalls.push({ url: parsed.href, requestOptions });
@@ -525,12 +646,12 @@ assert.equal(onlineCatalog.node('#catalog-results').children.length, 1, 'TMDB se
 assert.equal(onlineCatalog.node('#catalog-status').textContent, '1 resultados de pesquisa TMDB.');
 assert.equal(onlineCatalog.node('#tmdb-attribution').hidden, false, 'configured TMDB data reveals its attribution notice and supplied logo');
 assert.equal(vm.runInContext('remoteSearchResults[0].id', onlineCatalog.sandbox), 'tmdb:123');
-assert.equal(vm.runInContext('remoteSearchResults[0].runtimeMinutes', onlineCatalog.sandbox), 95);
-assert.equal(vm.runInContext('remoteSearchResults[0].imdbId', onlineCatalog.sandbox), 'tt1234567');
-assert.equal(vm.runInContext('remoteSearchResults[0].tmdbRating', onlineCatalog.sandbox), 7.6);
+assert.equal(vm.runInContext('remoteSearchResults[0].runtimeMinutes', onlineCatalog.sandbox), null);
+assert.equal(vm.runInContext('remoteSearchResults[0].imdbId', onlineCatalog.sandbox), null);
+assert.equal(vm.runInContext('remoteSearchResults[0].tmdbRating', onlineCatalog.sandbox), 7.2);
 assert.equal(vm.runInContext('remoteSearchResults[0].posterUrl', onlineCatalog.sandbox), 'https://image.tmdb.org/t/p/w342/poster.jpg');
 assert.equal(tmdbCalls.every(request => !request.url.includes('api_key') && !request.url.includes('token') && !request.requestOptions.headers.Authorization), true, 'the browser never receives a TMDB credential');
-vm.runInContext('addCatalogMovie(remoteSearchResults[0])', onlineCatalog.sandbox);
+await vm.runInContext('addCatalogMovie(remoteSearchResults[0])', onlineCatalog.sandbox);
 assert.equal(onlineCatalog.node('#count').textContent, 20);
 assert.equal(vm.runInContext('playlistRecords().at(-1).tmdbId', onlineCatalog.sandbox), 123);
 await vm.runInContext('loadRelatedRecommendations()', onlineCatalog.sandbox);
@@ -545,7 +666,7 @@ assert.ok(onlineCatalog.node('#movie-detail-body').children.some(element=>elemen
 onlineCatalog.node('#movie-dialog-close').dispatch('click');
 assert.equal(onlineCatalog.node('#movie-dialog').open,false);
 await vm.runInContext('openMovieDetails(playlistRecords().at(-1))',onlineCatalog.sandbox);
-assert.equal(onlineCatalog.requests.length,beforeDetailCalls+1,'reopening movie details uses the in-memory cache');
+assert.equal(onlineCatalog.requests.length,beforeDetailCalls,'reopening movie details uses the in-memory cache');
 onlineCatalog.node('#movie-dialog-close').dispatch('click');
 const localDetails = await createApp();
 await vm.runInContext("openMovieDetails(createMovie('My handwritten film'))",localDetails.sandbox);
@@ -581,7 +702,7 @@ assert.equal(vm.runInContext('relatedCache.movies.some(movie=>movie.tmdbId===104
 assert.deepEqual(Array.from(vm.runInContext('relatedCache.movies.find(movie=>movie.tmdbId===999996).collections', extendedCatalog.sandbox)), ['horror','mystery'], 'a film can belong to both recommendation categories');
 await extendedCatalog.node('#related-more').dispatch('click');
 assert.equal(extendedCatalog.node('#related-results').children.length,32,'more recommendations exposes another batch without the old eight-film limit');
-vm.runInContext('addCatalogMovie(relatedCache.movies[0])',extendedCatalog.sandbox);
+await vm.runInContext('addCatalogMovie(relatedCache.movies[0])',extendedCatalog.sandbox);
 assert.equal(vm.runInContext('relatedResults.children.some(card=>card.children[1].children[0].children[0].textContent===displayTitle(relatedCache.movies[0]))',extendedCatalog.sandbox),false,'adding a recommendation immediately removes its card');
 const previousSeeds = vm.runInContext('relatedCache.seedIndex', extendedCatalog.sandbox);
 await extendedCatalog.node('collection:mystery').dispatch('click');
@@ -597,7 +718,7 @@ assert.equal(noResultCatalog.node('#catalog-results').children[0].textContent, '
 const failedCatalog = await createApp({}, { window: tmdbConfig, fetch: async () => { throw new TypeError('network offline'); } });
 failedCatalog.node('#catalog-search').value = 'Beetlejuice';
 await failedCatalog.node('#catalog-search-form').dispatch('submit');
-assert.equal(failedCatalog.node('#catalog-status').textContent, 'Não foi possível contactar o catálogo TMDB. A mostrar as sugestões locais.');
+assert.equal(failedCatalog.node('#catalog-status').textContent, 'Catálogo online indisponível. As sugestões locais continuam disponíveis.');
 assert.equal(failedCatalog.node('#catalog-results').children.length, 1, 'network failure falls back to local curation');
 
 const html = await readFile('index.html', 'utf8');
@@ -643,11 +764,24 @@ for (let index = 0; index < 90; index++) assert.equal((await rateLimiter.fetch(n
 const limited = await rateLimiter.fetch(new Request('https://rate-limit.internal/check', { method: 'POST' }));
 assert.equal(limited.status, 429, 'atomic limiter rejects the 91st request in a minute');
 assert.ok(Number(limited.headers.get('Retry-After')) > 0);
+const rejectedRateLimiter = { idFromName: () => 'opaque', get: () => ({ fetch: async () => new Response('Limit', { status: 429, headers: { 'Retry-After': '37' } }) }) };
+const limitedProxy = await tmdbProxy.fetch(requestToProxy('search/movie?query=Movie', { headers: { 'CF-Connecting-IP': '203.0.113.10' } }), { TMDB_API_READ_ACCESS_TOKEN: 'test-token', RATE_LIMITER: rejectedRateLimiter });
+assert.equal(limitedProxy.status, 429);
+assert.equal(limitedProxy.headers.get('Retry-After'), '37');
+assert.equal(limitedProxy.headers.get('Access-Control-Expose-Headers'), 'Retry-After');
+const fetchBeforeRetryTest = globalThis.fetch;
+try {
+  globalThis.fetch = async () => new Response('{}', { status: 429, headers: { 'Retry-After': '73' } });
+  const upstreamLimit = await tmdbProxy.fetch(requestToProxy('movie/123', { headers: { 'CF-Connecting-IP': '203.0.113.10' } }), { TMDB_API_READ_ACCESS_TOKEN: 'test-token', RATE_LIMITER: passedRateLimiter });
+  assert.equal(upstreamLimit.status, 429);
+  assert.equal(upstreamLimit.headers.get('Retry-After'), '73');
+  assert.equal(upstreamLimit.headers.get('Access-Control-Expose-Headers'), 'Retry-After');
+} finally { globalThis.fetch = fetchBeforeRetryTest; }
 for (const count of [1, 2, 3, 9]) {
   const modeApp = await createApp();
   modeApp.setReduceMotion(true);
   modeApp.node('#movies').value = Array.from({ length: count }, (_, index) => index === 0 ? 'A very long title for a manually added movie with no poster' : `Film ${index}`).join('\n');
-  modeApp.node('#movies').dispatch('input');
+  modeApp.node('#movies').dispatch('input'); modeApp.node('#finish-edit').dispatch('click');
   modeApp.node('#draw-mode').value = 'doors'; modeApp.node('#draw-mode').dispatch('change');
   modeApp.node('#draw-pace').value = 'suspense'; modeApp.node('#draw-pace').dispatch('change');
   assert.equal(JSON.parse(modeApp.storage.get('cinema-roulette-v5')).themes.halloween.drawMode, 'doors', 'draw mode preference persists for Halloween');
@@ -677,7 +811,7 @@ for (const count of [1, 2, 3, 9]) {
 }
 const shuffleApp = await createApp();
 shuffleApp.setReduceMotion(true);
-shuffleApp.node('#movies').value = 'A Manual Film Without Any Poster Data'; shuffleApp.node('#movies').dispatch('input');
+shuffleApp.node('#movies').value = 'A Manual Film Without Any Poster Data'; shuffleApp.node('#movies').dispatch('input'); shuffleApp.node('#finish-edit').dispatch('click');
 shuffleApp.node('#draw-mode').value = 'shuffle'; shuffleApp.node('#draw-mode').dispatch('change');
 assert.equal(shuffleApp.node('#wheel').selector, '#wheel');
 assert.equal(shuffleApp.node('#shuffle-stage').hidden, false, 'title shuffle stage is shown without poster metadata');
@@ -693,7 +827,7 @@ assert.equal(vm.runInContext('themeData.sessions.length', shuffleApp.sandbox), 1
 for (const mode of ['wheel', 'shuffle', 'posters']) for (const count of [1, 2, 3, 9]) {
   const drawApp = await createApp(); drawApp.setReduceMotion(true);
   drawApp.node('#movies').value = Array.from({ length: count }, (_, index) => `Manual title ${index + 1} with possible missing artwork`).join('\n');
-  drawApp.node('#movies').dispatch('input');
+  drawApp.node('#movies').dispatch('input'); drawApp.node('#finish-edit').dispatch('click');
   drawApp.node('#draw-mode').value = mode; drawApp.node('#draw-mode').dispatch('change');
   const pendingDraw = drawApp.node('#spin').dispatch('click'); drawApp.animationFrames.shift()(0);
   const outcome = await pendingDraw;
@@ -724,7 +858,7 @@ assert.equal(mutedDoors.audios.every(audio => audio.paused), true, 'mute immedia
 mutedDoors.animationFrames.shift()(1500); await mutedDoorDraw;
 assert.equal(mutedDoors.audios[1].playCount, 0, 'muted door result remains silent');
 const noMatchesApp = await createApp();
-noMatchesApp.node('#movies').value = 'A Manual Title With No Mood Metadata'; noMatchesApp.node('#movies').dispatch('input');
+noMatchesApp.node('#movies').value = 'A Manual Title With No Mood Metadata'; noMatchesApp.node('#movies').dispatch('input'); noMatchesApp.node('#finish-edit').dispatch('click');
 noMatchesApp.node('#draw-mode').value = 'doors'; noMatchesApp.node('#draw-mode').dispatch('change');
 noMatchesApp.node('#filter-mood-scary').checked = true; noMatchesApp.node('#filter-mood-scary').dispatch('change');
 assert.equal(vm.runInContext('eligibleRecords().length', noMatchesApp.sandbox), 0, 'empty filters keep the shared eligible pool empty');

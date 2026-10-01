@@ -4,3 +4,5 @@ site/
 .wrangler/
 .dev.vars*
 .env*
+test-artifacts/
+.npm-cache/

@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 240">
   <defs>
-    <linearGradient id="wood"><stop stop-color="#25150f"/><stop offset=".45" stop-color="#643620"/><stop offset="1" stop-color="#26160f"/></linearGradient>
+    <linearGradient id="wood"><stop stop-color="#25150f"/><stop offset=".45" stop-color="#465039"/><stop offset="1" stop-color="#26160f"/></linearGradient>
     <radialGradient id="pumpkin"><stop stop-color="#ffb542"/><stop offset="1" stop-color="#bc4a12"/></radialGradient>
   </defs>
-  <path d="M5 239V63C5-14 115-14 115 63v176" fill="#18100c" stroke="#926044" stroke-width="5"/>
+  <path d="M5 239V63C5-14 115-14 115 63v176" fill="#18100c" stroke="#70654a" stroke-width="5"/>
   <path d="M14 239V64c0-65 92-65 92 0v175Z" fill="url(#wood)" stroke="#24120c" stroke-width="3"/>
   <g fill="none" stroke="#1e100b" stroke-width="2" opacity=".7"><path d="M30 27v210M49 15v222M71 15v222M91 27v210"/><path d="M22 71q3 28 0 60M40 155q-4 24 0 55M81 52q4 28 0 50M99 152q-4 21 0 58" stroke="#bd7951" stroke-width="1" opacity=".4"/></g>
   <path d="M20 69h80v65H20ZM20 146h80v78H20Z" fill="none" stroke="#b1754638" stroke-width="3"/>
@@ -19,15 +19,17 @@
   <g fill="none" stroke="#ccc1a0" stroke-width=".8" opacity=".5"><path d="M98 21L70 32M98 21L107 61M98 21L87 51M88 26q2 12 13 14M78 29q5 22 26 20M70 32q8 28 37 29"/></g>
   <path d="M30 229q12-14 17 0m28 0q13-17 19 0" fill="none" stroke="#17110c" stroke-width="3"/>
 <g fill="none" stroke="#bb8754" stroke-width=".55" opacity=".27"><path d="M27 46q-5 22 0 39t-2 50M44 23q3 24-1 44M65 140q-5 24 0 38t-3 50M96 72q4 18-1 40M37 164q7 25 1 42"/><ellipse cx="75" cy="166" rx="3" ry="9"/><ellipse cx="28" cy="92" rx="2" ry="7"/></g>
- <path d="M48 21l-4 39 7 14-7 31 4 17-8 28 3 18-5 47 10-36-1-27 9-27-5-19 8-34-8-13Z" fill="#100c08"/>
- <path d="M75 151l7 19-6 29 7 20-2 21h-10l5-18-5-24 7-27Z" fill="#17110a"/>
- <path d="M14 197l22 8-5 11 12 14-8 10H14Z" fill="#11100a"/>
- <path d="M46 59l5 15-7 31M78 174l-2 23 6 20" fill="none" stroke="#a57444" stroke-width="1"/>
- <path d="M17 181l77-15 2 10-76 16Z" fill="#39281a" stroke="#160f0b" stroke-width="2"/>
- <g fill="#8b6040"><circle cx="23" cy="185" r="1.6"/><circle cx="88" cy="172" r="1.6"/></g>
- <g transform="translate(16 34) scale(1 1)" fill="none" stroke="#d9cfb4" stroke-width=".7" opacity=".65">
+ <g fill="#394329" opacity=".8"><path d="M15 62q13-9 14 8l-7 29 5 17-13 13Z"/><path d="M90 169q-12 4-9 19l8 11-5 22 22 18v-72Z"/><path d="M35 223l11-15 14 7 10-5 9 29H30Z"/></g>
+ <path d="M70 18l-6 36 7 24-10 14 5 25-7 29 7 20-7 44 1 30h11l-4-29 6-42-5-28 6-23-4-27 8-13-7-26 7-32Z" fill="#10140c"/>
+ <path d="M17 230l7-18 5 13 9-15 5 19 9-4 3 15H14Z" fill="#0b100a"/>
+ <g fill="#090d08"><ellipse cx="26" cy="150" rx="7" ry="16"/><ellipse cx="94" cy="79" rx="4" ry="10"/></g>
+ <path d="M22 138l-3 13 5 13M93 70l-3 9 2 8M68 54l5 24-10 14" fill="none" stroke="#7a8060" stroke-width="1"/>
+ <g transform="translate(103 30) scale(-1 1)" fill="none" stroke="#d9cfb4" stroke-width=".7" opacity=".65">
     <path d="M0 0L38 4M0 0L34 19M0 0L22 34M0 0L4 43M0 0L0 49"/>
     <path d="M10 1Q9 5 9 5Q8 8 6 10Q3 12 1 12M20 2Q19 7 18 10Q15 15 12 19Q6 23 2 24M30 3Q28 12 27 15Q24 22 18 28Q9 34 3 36M38 4Q38 16 34 19Q30 31 22 34Q14 43 4 43"/>
-    </g><g transform="translate(30 67)"><path d="M0 -27V-6" stroke="#c8bea4" stroke-width=".65"/>
+    </g><g transform="translate(17 161) scale(1 1)" fill="none" stroke="#d9cfb4" stroke-width=".7" opacity=".65">
+    <path d="M0 0L38 4M0 0L34 19M0 0L22 34M0 0L4 43M0 0L0 49"/>
+    <path d="M10 1Q9 5 9 5Q8 8 6 10Q3 12 1 12M20 2Q19 7 18 10Q15 15 12 19Q6 23 2 24M30 3Q28 12 27 15Q24 22 18 28Q9 34 3 36M38 4Q38 16 34 19Q30 31 22 34Q14 43 4 43"/>
+    </g><g transform="translate(89 69)"><path d="M0 -35V-6" stroke="#c8bea4" stroke-width=".65"/>
     <g fill="none" stroke="#080806" stroke-width="1.25" stroke-linecap="round"><path d="M-2-2l-6-5-3 2M-3 0l-7-1-3 3M-3 2l-7 4-2 4M-2 3l-5 7 1 4M2-2l6-5 3 2M3 0l7-1 3 3M3 2l7 4 2 4M2 3l5 7-1 4"/></g><ellipse ry="5" rx="3.4" fill="#090907"/><circle cy="-5" r="2.3" fill="#17140d"/><path d="M-1 1h2" stroke="#804326" stroke-width=".8"/></g>
 </svg>

@@ -7,16 +7,22 @@
   <meta name="description" content="Deixa a sorte escolher o filme da noite. Uma roleta de cinema com coleções para Halloween e Natal.">
   <title>Halloween Roulette — O teu próximo filme</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=20260930-details">
+  <link rel="stylesheet" href="style.css?v=20261001-music-doors">
   <script src="movies.js" defer></script>
   <script src="catalog.js?v=20260930-details" defer></script>
   <script>
     window.CINEMA_CATALOG_PROXY_URL = 'https://halloween-cinema-catalog.joaoferreira240.workers.dev/3/';
     window.CINEMA_TMDB_LOGO_URL = 'https://www.themoviedb.org/assets/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg';
   </script>
-  <script src="app.js?v=20261001-mystery" defer></script>
+  <script src="translations.js?v=20261001-music-doors" defer></script>
+  <script src="storage.js?v=20261001-music-doors" defer></script>
+  <script src="tmdb.js?v=20261001-music-doors" defer></script>
+  <script src="drawing.js?v=20261001-music-doors" defer></script>
+  <script src="collection.js?v=20261001-music-doors" defer></script>
+  <script src="app.js?v=20261001-music-doors" defer></script>
 </head>
 <body data-theme="halloween">
+  <aside id="storage-warning" class="storage-warning" role="alert" hidden><p id="storage-warning-text"></p><button class="text-button" id="storage-backup" type="button"></button></aside>
   <div class="halloween-scene theme-scene" aria-hidden="true"><div class="blood-moon"></div><div class="bat bat-one">🦇</div><div class="bat bat-two">🦇</div><div class="bat bat-three">🦇</div><div class="pumpkin pumpkin-left">🎃</div><div class="pumpkin pumpkin-right">🎃</div></div>
   <div class="christmas-scene theme-scene" aria-hidden="true"><div class="christmas-glow"></div><div class="lights lights-top">✦　●　✦　●　✦　●　✦　●　✦</div><div class="snow snow-one">✳</div><div class="snow snow-two">❄</div><div class="snow snow-three">✻</div><div class="evergreen evergreen-left">🌲</div><div class="evergreen evergreen-right">🌲</div></div>
   <div class="fog fog-back" aria-hidden="true"></div><div class="fog fog-front" aria-hidden="true"></div>
@@ -65,7 +71,10 @@
         <div class="wheel-stage"><span class="wheel-caption" data-i18n="wheelCaption">A RODA DOS ARREPIOS</span><div class="wheel-frame"><span class="wheel-lights" aria-hidden="true">✦　✦　✦　✦　✦　✦　✦　✦</span><div class="pointer" aria-hidden="true"></div><canvas id="wheel" width="1000" height="1000" role="img" aria-label="Roleta com os filmes da lista"></canvas><img class="haunted-frame" src="haunted-wheel.svg" alt="" aria-hidden="true" draggable="false"><div class="wheel-center" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 13c-8-5-24 1-25 18-2 18 13 26 25 22 12 4 27-4 25-22-1-17-17-23-25-18Z" fill="currentColor"/><path d="m28 13 3-8 8-2-4 11" fill="none" stroke="currentColor" stroke-width="4"/><path d="m15 31 12-6-3 12Zm34 0-12-6 3 12ZM31 32l-4 8h10ZM16 42l8 3 4-3 4 5 5-5 4 3 7-3-5 8H21Z" fill="#160d07"/></svg><small id="wheel-theme-label">HALLOWEEN</small></div></div><span class="wheel-orbit" data-i18n="wheelOrbit">✦ &nbsp; QUE A SORTE TE ASSOMBRE &nbsp; ✦</span></div>
         <div class="game-controls"><button class="spin" id="spin" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg><span data-i18n="spin">Rodar a roleta</span></button><button class="sound-toggle" id="sound" type="button" aria-pressed="true" aria-label="Desativar som" title="Desativar som"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="speaker" d="M3 9v6h4l5 4V5L7 9H3Z"/><path class="sound-waves" d="M16 9a5 5 0 0 1 0 6m3-9a9 9 0 0 1 0 12"/><path class="sound-off" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
         <div class="result" id="result" aria-live="polite" aria-atomic="true"><span class="result-icon" aria-hidden="true">☾</span><div class="result-content"><span class="eyebrow" id="result-label">O DESTINO ESTÁ À ESPERA</span><h3><button class="movie-title-action" id="result-title" type="button" disabled>O próximo filme é uma surpresa.</button></h3><p id="result-description">Roda a roleta para descobrir.</p><button class="text-button watch-toggle" id="watch-toggle" type="button" hidden>Marcar como visto</button></div></div>
+        <div class="music-controls"><button class="text-button music-toggle" id="music" type="button" aria-pressed="false">♫ Ativar música de fundo</button><p id="music-status" role="status"></p></div>
         <p class="hint" id="hint">19 filmes. Uma escolha. Tens coragem?</p>
+        <p id="poster-suggestion" class="hint" hidden></p>
+        <details class="eligible-browser"><summary id="eligible-list-label"></summary><ul id="eligible-list"></ul></details>
       </section>
       <div class="side-panels session-workspace">
         <div class="workspace-heading"><div><span class="eyebrow" data-i18n="workspaceEyebrow">À TUA MEDIDA</span><h2 data-i18n="workspaceTitle">Prepara a noite</h2></div><button type="button" class="collection-shortcut" id="collection-shortcut"><span id="count">19</span> <span data-i18n="filmsNoun">filmes</span></button></div>
@@ -126,16 +135,19 @@
 
           <div class="exhausted-actions" id="exhausted-actions" hidden><p id="exhausted-message"></p><button class="text-button" id="include-viewed" type="button">Incluir filmes vistos</button><button class="text-button" id="reset-viewed" type="button">Reiniciar lista de vistos</button></div>
           <button class="text-button edit-toggle" id="edit-toggle" type="button" aria-expanded="false" aria-controls="movie-editor" data-i18n="editMovies">Editar filmes</button>
+          <button class="text-button" id="undo-remove" type="button" hidden></button>
           <ul id="playlist-preview" class="playlist-preview"></ul>
           <button class="text-button" id="find-movies" type="button" data-i18n="findMovies">Encontrar filmes</button>
           <div id="movie-editor" hidden>
             <p class="panel-description" data-i18n="editorHelp">Um filme por linha. Troca, acrescenta ou elimina títulos.</p>
             <label class="sr-only" for="movies" data-i18n="moviesLabel">Filmes a incluir na roleta, um por linha</label>
             <textarea id="movies" spellcheck="false" rows="12" maxlength="8000"></textarea>
+            <p id="editor-error" role="alert"></p>
             <div class="editor-actions"><button class="text-button" id="reset" type="button" data-i18n="reset">Repor a seleção inicial</button></div>
           </div>
           <div class="list-footer"><span id="list-status" role="status">Lista pronta para rodar</span></div>
-          <button class="text-button finish-edit" id="finish-edit" type="button" hidden data-i18n="finishEdit">Concluir edição</button>
+          <button class="text-button finish-edit" id="finish-edit" type="button" hidden data-i18n="finishEdit">Guardar</button>
+          <button class="text-button" id="cancel-edit" type="button" hidden></button>
         </aside>
           <details class="advanced-panel metadata-panel" id="metadata-panel">
           <summary id="metadata-title" data-i18n="metadataTitle">Metadados dos filmes</summary>
@@ -217,6 +229,7 @@
         </details>
   </main>
   <dialog class="movie-dialog" id="movie-dialog" aria-labelledby="movie-detail-title"><button class="movie-dialog-close" id="movie-dialog-close" type="button" aria-label="Fechar detalhes">×</button><h2 id="movie-detail-title"></h2><div id="movie-detail-body"></div><p id="movie-detail-status" role="status"></p></dialog>
+  <dialog class="movie-dialog" id="title-edit-dialog" aria-labelledby="title-edit-heading"><h2 id="title-edit-heading"></h2><form id="title-edit-form"><label><span class="sr-only" id="title-edit-label">Título / Title</span><input id="title-edit-input" aria-labelledby="title-edit-label" maxlength="300" required></label><p id="title-edit-error" role="alert"></p><button class="text-button" id="title-edit-save" type="submit"></button><button class="text-button" id="title-edit-cancel" type="button"></button></form></dialog>
   <footer><span data-i18n="footerLeft">FEITO PARA NOITES QUE NÃO TE DEIXAM DORMIR.</span><span><span data-i18n="footerRight">Boa sessão. Vais precisar de pipocas.</span> <span aria-hidden="true">✦</span></span></footer>
 </body>
 </html>
